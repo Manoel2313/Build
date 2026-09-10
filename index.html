@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Mini Studio 3D — v3.2</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; overflow:hidden; background:#2b2f36; font-family: system-ui, Arial, sans-serif; }
+  canvas { display:block; }
+
+  /* Cursores conforme ferramenta */
+  body.tool-select canvas { cursor: default; }
+  body.tool-move canvas   { cursor: grab; }
+  body.tool-move.dragging canvas { cursor: grabbing; }
+  body.tool-rotate canvas { cursor: crosshair; }
+  body.tool-scale canvas  { cursor: nwse-resize; }
+  body.tool-color canvas  { cursor: cell; }
+
+  /* ---------- TOPBAR ---------- */
+  #topbar {
+    position:fixed; top:10px; left:50%; transform:translateX(-50%);
+    background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:16px;
+    padding:8px; display:flex; gap:6px; z-index:30;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5);
+    align-items: center;
+  }
+  .tool {
+    background:#2b2f36; border:2px solid transparent; color:#cfd2d8;
+    padding:10px 14px; border-radius:12px; cursor:pointer; font-size:14px;
+    display:flex; align-items:center; gap:8px; transition: all .15s;
+    user-select:none; font-weight: 600;
+  }
+  .tool .ico { font-size: 18px; }
+  .tool:hover { background:#3a3f47; color:#fff; transform: translateY(-1px); }
+  .tool.active {
+    background:#5865f2; color:#fff;
+    box-shadow: 0 0 0 3px rgba(88,101,242,0.3), 0 6px 16px rgba(88,101,242,0.5);
+  }
+  .tool.danger:hover { background:#a13a3a; }
+  .tool.hi { background:#3ba55d; color:#fff; }
+  .tool.hi:hover { background:#4bc46d; }
+  .tool.colorTool.active { background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #a259ff); }
+  .divider { width:2px; background:#3a3f47; margin:4px 6px; align-self: stretch; border-radius:2px; }
+
+  /* ---------- MENU DE FORMAS ---------- */
+  #shapeMenu {
+    position:fixed; left:16px; top:50%; transform:translateY(-50%);
+    background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:16px;
+    padding:8px; display:flex; flex-direction:column; gap:4px; z-index:25;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5);
+    transition: opacity .2s, transform .2s;
+    max-width: 230px;
+  }
+  #shapeMenu.collapsed { opacity:0; pointer-events:none; transform:translate(-120%, -50%); }
+  #shapeMenu .title {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #8a8f98; padding: 4px 10px 6px; font-weight: 700;
+  }
+  .shape {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 14px; border-radius:12px; cursor:pointer;
+    color:#cfd2d8; font-size:14px; background:transparent; border:2px solid transparent;
+    transition:all .15s; user-select:none; white-space:nowrap; font-weight:600;
+    text-align: left;
+  }
+  .shape:hover { background:#3a3f47; color:#fff; transform: translateX(3px); }
+  .shape.active { background:#5865f2; color:#fff; box-shadow: 0 0 0 3px rgba(88,101,242,0.3); }
+  .shape .ico { width:22px; height:22px; display:inline-block; background:#8a8f98; flex-shrink:0; transition: all .15s; }
+  .shape:hover .ico { background: #fff; }
+  .shape.active .ico { background:#fff; }
+  .ico-box { border-radius:4px; }
+  .ico-sphere { border-radius:50%; }
+  .ico-triangle { clip-path: polygon(50% 0,100% 100%,0 100%); }
+  .ico-cylinder { border-radius:50% / 20%; }
+  .ico-cone { clip-path: polygon(50% 0,100% 100%,0 100%); border-radius:0 0 40% 40%; }
+  .ico-wedge { clip-path: polygon(0 100%,100% 100%,0 0); }
+  .shape kbd { opacity:.4; margin-left:auto; font-size:11px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius:4px; }
+  .shape.active kbd { opacity:.9; background: rgba(255,255,255,0.2); }
+
+  /* ---------- PALETA FLUTUANTE (cor rápida) ---------- */
+  #quickColor {
+    position:fixed; z-index:150;
+    background:rgba(30,32,38,0.98); backdrop-filter: blur(10px);
+    border:2px solid #a259ff; border-radius:14px;
+    padding: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 0 3px rgba(162,89,255,0.2);
+    display: none;
+    grid-template-columns: repeat(6, 32px);
+    gap: 6px;
+  }
+  #quickColor.show { display: grid; animation: pop .15s ease-out; }
+  #quickColor .swatch {
+    width:32px; height:32px; border-radius:8px; cursor:pointer;
+    border:2px solid transparent; transition: all .15s;
+  }
+  #quickColor .swatch:hover { transform: scale(1.15); border-color:#fff; }
+
+  /* ---------- BOLHA DE FEEDBACK (o que tá fazendo) ---------- */
+  #hint {
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:rgba(88,101,242,0.95); color:#fff;
+    padding: 12px 22px; border-radius: 12px;
+    font-size: 14px; font-weight: 600;
+    box-shadow: 0 6px 20px rgba(88,101,242,0.5);
+    opacity:0; transition: all .25s;
+    pointer-events: none; z-index: 100;
+    display: flex; align-items: center; gap: 10px;
+    white-space: nowrap;
+  }
+  #hint.show { opacity:1; transform: translateX(-50%) translateY(0); }
+  #hint .emoji { font-size: 20px; }
+
+  /* ---------- PAINEL DE PROPRIEDADES ---------- */
+  #props {
+    position:fixed; right:16px; top:80px; width:280px;
+    background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:16px;
+    padding:14px; z-index:25; color:#cfd2d8; font-size:13px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5);
+    transition: opacity .25s, transform .25s;
+    max-height: calc(100vh - 110px); overflow-y:auto;
+    scrollbar-width: thin; scrollbar-color: #5865f2 transparent;
+  }
+  #props::-webkit-scrollbar { width:6px; }
+  #props::-webkit-scrollbar-thumb { background:#3a3f47; border-radius:3px; }
+  #props.hidden { opacity:0; pointer-events:none; transform: translateX(30px); }
+
+  #propsHeader {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom: 12px; padding-bottom: 12px;
+    border-bottom: 1px solid #3a3f47;
+  }
+  #propsHeader h4 {
+    margin:0; font-size:14px; color:#fff; font-weight: 700;
+    display:flex; align-items:center; gap:8px;
+  }
+  #propsHeader h4 .badgeId {
+    background:#5865f2; color:#fff; font-size:10px;
+    padding:2px 8px; border-radius:10px; font-weight:700;
+  }
+
+  /* Dica no topo do painel */
+  #propsHint {
+    background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(127,255,212,0.05));
+    border-left: 3px solid #5865f2;
+    padding: 10px 12px; border-radius: 8px;
+    font-size: 12px; line-height: 1.5;
+    color: #cfd2d8; margin-bottom: 12px;
+  }
+  #propsHint b { color: #7fffd4; }
+
+  .propSection {
+    border-radius: 12px; padding: 12px; margin-bottom: 10px;
+    border: 1px solid #3a3f47; background: rgba(0,0,0,0.15);
+  }
+  .propSection.pos { border-color: #3498db; background: linear-gradient(135deg, rgba(52,152,219,0.08), rgba(52,152,219,0.02)); }
+  .propSection.rot { border-color: #e67e22; background: linear-gradient(135deg, rgba(230,126,34,0.08), rgba(230,126,34,0.02)); }
+  .propSection.size { border-color: #3ba55d; background: linear-gradient(135deg, rgba(59,165,93,0.08), rgba(59,165,93,0.02)); }
+  .propSection.color { border-color: #a259ff; background: linear-gradient(135deg, rgba(162,89,255,0.08), rgba(162,89,255,0.02)); }
+
+  .propHeader {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .propSection.pos .propHeader { color: #3498db; }
+  .propSection.rot .propHeader { color: #e67e22; }
+  .propSection.size .propHeader { color: #3ba55d; }
+  .propSection.color .propHeader { color: #a259ff; }
+  .propHeader .ico { font-size: 16px; }
+
+  .axisRow { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .axisRow .axisTag {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 11px; color: #fff; flex-shrink: 0;
+  }
+  .axisRow.x .axisTag { background: #e74c3c; }
+  .axisRow.y .axisTag { background: #3ba55d; }
+  .axisRow.z .axisTag { background: #3498db; }
+
+  .stepBtn {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: #3a3f47; border: none; color: #cfd2d8;
+    cursor: pointer; font-size: 14px; font-weight: 700;
+    display:flex; align-items:center; justify-content:center;
+    transition: all .12s; flex-shrink: 0; user-select: none;
+  }
+  .stepBtn:hover { background: #5865f2; color:#fff; }
+  .stepBtn:active { transform: scale(0.9); }
+
+  .axisRow input[type=number] {
+    flex:1; background:#1e2026; border:1px solid #3a3f47; color:#fff;
+    padding:6px 8px; border-radius:6px; font-size:13px; width:0;
+    outline:none; transition: border-color .15s;
+    text-align: center; font-weight: 600;
+  }
+  .axisRow input[type=number]:focus { border-color:#5865f2; }
+
+  .sliderRow { margin-top: 8px; display: flex; align-items: center; gap: 8px; }
+  .sliderRow input[type=range] {
+    flex:1; -webkit-appearance: none; appearance: none;
+    height: 6px; border-radius: 3px; outline: none;
+    background: #1e2026; cursor: pointer;
+  }
+  .propSection.rot .sliderRow input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #e67e22; cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(230,126,34,0.25);
+  }
+  .propSection.size .sliderRow input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #3ba55d; cursor: pointer;
+    box-shadow: 0 0 0 3px rgba(59,165,93,0.25);
+  }
+  .sliderRow .lblAxis {
+    width: 22px; text-align: center;
+    font-weight: 900; font-size: 11px; color: #8a8f98;
+  }
+
+  .colorPickerRow { display: flex; gap: 10px; align-items: center; }
+  .colorPickerRow input[type=color] {
+    width: 60px; height: 48px;
+    background:none; border: 2px solid #3a3f47;
+    border-radius: 10px; cursor:pointer; padding: 2px;
+    transition: border-color .15s;
+  }
+  .colorPickerRow input[type=color]:hover { border-color: #a259ff; }
+  .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; flex: 1; }
+  .swatch {
+    aspect-ratio: 1; border-radius: 6px; cursor: pointer;
+    border: 2px solid transparent; transition: all .15s;
+  }
+  .swatch:hover { transform: scale(1.15); border-color: #fff; }
+
+  .actionRow { display: flex; gap: 8px; margin-top: 12px; }
+  .actionBtn {
+    flex:1; padding: 10px; border-radius: 10px;
+    background: #3a3f47; border: none; color: #cfd2d8;
+    cursor: pointer; font-size: 13px; font-weight: 700;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    transition: all .15s;
+  }
+  .actionBtn:hover { background: #5865f2; color: #fff; transform: translateY(-1px); }
+  .actionBtn.delete { background: #7a2b2b; }
+  .actionBtn.delete:hover { background: #a13a3a; }
+
+  /* ---------- BOTTOM BAR ---------- */
+  #bottombar {
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+    background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:14px;
+    padding:10px 16px; display:flex; align-items:center; gap:14px;
+    z-index:25; color:#8a8f98; font-size:12px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5);
+    white-space:nowrap;
+  }
+  #bottombar kbd {
+    background:#1e2026; border:1px solid #3a3f47; border-radius:5px;
+    padding:3px 7px; font-size:11px; color:#cfd2d8;
+    font-family: inherit; font-weight: 700;
+  }
+  #bottombar .stat { color:#5865f2; font-weight:700; }
+
+  /* ---------- MENU DE CONTEXTO ---------- */
+  #ctx {
+    position:fixed; background:rgba(30,32,38,0.98); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:12px;
+    padding:6px; z-index:100; min-width:200px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.7);
+    display:none;
+  }
+  #ctx.show { display:block; animation: pop .15s ease-out; }
+  @keyframes pop {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  #ctx button {
+    display:flex; align-items:center; gap:10px;
+    width:100%; text-align:left;
+    background:transparent; border:none; color:#cfd2d8;
+    padding:10px 14px; border-radius:8px; cursor:pointer; font-size:13px;
+    font-weight: 600; transition: all .12s;
+  }
+  #ctx button:hover { background:#5865f2; color:#fff; }
+  #ctx button.danger:hover { background:#a13a3a; }
+  #ctx .sep { height:1px; background:#3a3f47; margin:4px 6px; }
+  #ctx .label {
+    padding: 4px 12px 6px; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: #8a8f98; font-weight: 700;
+  }
+  #ctx kbd {
+    margin-left: auto;
+    background: rgba(255,255,255,0.1); padding: 2px 6px;
+    border-radius: 4px; font-size: 11px;
+  }
+
+  /* ---------- BOTÕES FLUTUANTES ---------- */
+  #menuToggle {
+    position:fixed; top:16px; left:16px; z-index:26;
+    background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:12px;
+    width:46px; height:46px; cursor:pointer; color:#cfd2d8;
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; transition: all .15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  #menuToggle:hover { background:#5865f2; color:#fff; transform: scale(1.05); }
+
+  #helpBtn {
+    position:fixed; bottom:16px; right:16px; z-index:50;
+    width:56px; height:56px; border-radius:50%;
+    background:#5865f2; color:#fff;
+    border:none; cursor:pointer; font-size:26px; font-weight:700;
+    box-shadow: 0 4px 20px rgba(88,101,242,0.6);
+    display:flex; align-items:center; justify-content:center;
+    transition: all .2s;
+  }
+  #helpBtn:hover { transform: scale(1.1); box-shadow: 0 6px 26px rgba(88,101,242,0.9); }
+  #helpBtn.pulse { animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 4px 20px rgba(88,101,242,0.5); }
+    50% { box-shadow: 0 4px 30px rgba(88,101,242,1); }
+  }
+
+  /* ---------- MODAIS ---------- */
+  .modal {
+    position:fixed; inset:0; z-index:200;
+    background: rgba(10,12,16,0.85); backdrop-filter: blur(6px);
+    display:none; align-items:center; justify-content:center;
+    padding:20px; opacity:0; transition: opacity .2s;
+  }
+  .modal.show { display:flex; opacity:1; }
+  .modalBox {
+    background:#1e2026; border:1px solid #3a3f47; border-radius:20px;
+    max-width:900px; width:100%; max-height:90vh; overflow-y:auto;
+    color:#cfd2d8; box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    scrollbar-width: thin; scrollbar-color: #5865f2 #1e2026;
+  }
+  .modalBox::-webkit-scrollbar { width:10px; }
+  .modalBox::-webkit-scrollbar-thumb { background:#3a3f47; border-radius:10px; }
+  .modalBox::-webkit-scrollbar-thumb:hover { background:#5865f2; }
+  .modalHeader {
+    padding: 24px 28px 18px; border-bottom: 1px solid #3a3f47;
+    position: sticky; top:0; background:#1e2026; z-index:5;
+    border-radius: 20px 20px 0 0;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modalHeader h1 {
+    margin:0; font-size: 22px;
+    background: linear-gradient(90deg, #5865f2, #7fffd4);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .modalClose {
+    background:#3a3f47; border:none; color:#cfd2d8;
+    width:38px; height:38px; border-radius:10px;
+    cursor:pointer; font-size:18px; transition: all .15s;
+  }
+  .modalClose:hover { background:#a13a3a; color:#fff; }
+  .modalBody { padding: 24px 28px 32px; }
+
+  .helpSection { margin-bottom: 28px; }
+  .helpSection h2 {
+    font-size: 18px; color:#7fffd4;
+    margin: 0 0 14px 0; display: flex; align-items: center; gap: 10px;
+    padding-bottom: 8px; border-bottom: 1px dashed #3a3f47;
+  }
+  .helpSection p { line-height: 1.7; font-size: 14px; color:#a8adb8; margin: 8px 0; }
+  .card {
+    background: #24272e; border: 1px solid #3a3f47;
+    border-radius: 12px; padding: 14px 18px; margin: 10px 0;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .card:hover { border-color:#5865f2; }
+  .card .key {
+    background: #1e2026; border: 1px solid #4a4f57;
+    border-bottom-width: 3px; border-radius: 8px;
+    padding: 6px 12px; font-family: monospace;
+    font-size: 13px; color: #fff; font-weight: 700;
+    min-width: 44px; text-align: center; flex-shrink: 0;
+  }
+  .card .desc { font-size: 14px; color: #cfd2d8; line-height: 1.5; }
+  .card .desc b { color: #7fffd4; }
+  .card .desc small { color: #8a8f98; display: block; margin-top: 2px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .tip {
+    background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(127,255,212,0.08));
+    border-left: 3px solid #5865f2;
+    padding: 12px 16px; border-radius: 8px;
+    margin: 12px 0; font-size: 13px; color: #cfd2d8; line-height: 1.6;
+  }
+  .tip b { color: #7fffd4; }
+
+  /* Big demo cards */
+  .demoGrid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+    margin: 12px 0;
+  }
+  @media (max-width: 700px) { .demoGrid { grid-template-columns: 1fr; } }
+  .demoCard {
+    padding: 18px; border-radius: 14px;
+    background: #24272e; border: 2px solid #3a3f47;
+    text-align: center;
+    transition: all .2s;
+  }
+  .demoCard:hover { border-color: #5865f2; transform: translateY(-2px); }
+  .demoCard .bigEmoji { font-size: 42px; margin-bottom: 8px; }
+  .demoCard .bigTitle { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .demoCard .bigDesc { font-size: 12px; color: #8a8f98; line-height: 1.5; }
+
+  /* Tooltip */
+  .tooltip {
+    position: fixed; background: #1a1c20;
+    color: #fff; padding: 10px 14px; border-radius: 10px;
+    font-size: 13px; z-index: 500; pointer-events: none;
+    border: 1px solid #5865f2;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.7);
+    opacity: 0; transition: opacity .15s;
+    max-width: 260px; line-height: 1.5;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip b { color: #7fffd4; }
+  .tooltip .key {
+    display: inline-block; background: #5865f2;
+    color:#fff; padding: 1px 6px; border-radius: 4px;
+    font-size: 11px; font-weight: 700; margin: 0 2px;
+  }
+</style>
+</head>
+<body class="tool-select">
+
+<button id="menuToggle" title="Mostrar/esconder formas (Tab)">☰</button>
+
+<div id="shapeMenu">
+  <div class="title">🧱 Escolha a forma</div>
+  <button class="shape active" data-shape="box" data-tip="<b>Cubo</b><br>Pra paredes, chão, casas, caixas.">
+    <span class="ico ico-box"></span> Cubo <kbd>1</kbd>
+  </button>
+  <button class="shape" data-shape="sphere" data-tip="<b>Esfera</b><br>Pra bolas, planetas, cabeças.">
+    <span class="ico ico-sphere"></span> Esfera <kbd>2</kbd>
+  </button>
+  <button class="shape" data-shape="triangle" data-tip="<b>Triângulo</b><br>Pra pirâmides, telhados.">
+    <span class="ico ico-triangle"></span> Triângulo <kbd>3</kbd>
+  </button>
+  <button class="shape" data-shape="cylinder" data-tip="<b>Cilindro</b><br>Pra torres, troncos, canos.">
+    <span class="ico ico-cylinder"></span> Cilindro <kbd>4</kbd>
+  </button>
+  <button class="shape" data-shape="cone" data-tip="<b>Cone</b><br>Pra tetos pontudos, árvores.">
+    <span class="ico ico-cone"></span> Cone <kbd>5</kbd>
+  </button>
+  <button class="shape" data-shape="wedge" data-tip="<b>Rampa</b><br>Pra escadas, telhados inclinados.">
+    <span class="ico ico-wedge"></span> Rampa <kbd>6</kbd>
+  </button>
+</div>
+
+<div id="topbar">
+  <button class="tool active" data-tool="select" data-tip="<b>🖱️ Selecionar</b><br>Clique num objeto. Depois arraste pra <b>mover direto</b>!">
+    <span class="ico">🖱️</span> <span>Selecionar</span>
+  </button>
+  <button class="tool" data-tool="move" data-tip="<b>✥ Mover</b><br>Arraste o objeto pra qualquer lugar. Aperte <span class='key'>G</span>.">
+    <span class="ico">✥</span> <span>Mover</span>
+  </button>
+  <button class="tool" data-tool="rotate" data-tip="<b>⟳ Girar</b><br>Arraste em círculo pra girar. Aperte <span class='key'>R</span>.">
+    <span class="ico">⟳</span> <span>Girar</span>
+  </button>
+  <button class="tool" data-tool="scale" data-tip="<b>⤢ Tamanho</b><br>Arraste pra fora = aumenta. Pra dentro = diminui. Aperte <span class='key'>S</span>.">
+    <span class="ico">⤢</span> <span>Tamanho</span>
+  </button>
+  <button class="tool colorTool" data-tool="color" data-tip="<b>🎨 Pintar</b><br>Clique num objeto e a paleta aparece. Aperte <span class='key'>C</span>.">
+    <span class="ico">🎨</span> <span>Pintar</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool" id="btnUndo" data-tip="<b>↶ Desfazer</b><br>Aperte <span class='key'>Ctrl</span>+<span class='key'>Z</span>.">
+    <span class="ico">↶</span>
+  </button>
+  <button class="tool" id="btnRedo" data-tip="<b>↷ Refazer</b><br>Aperte <span class='key'>Ctrl</span>+<span class='key'>Y</span>.">
+    <span class="ico">↷</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool hi" id="btnExport" data-tip="<b>📤 Exportar</b><br>Gera um código pra mandar o mapa.">
+    <span class="ico">📤</span> <span>Exportar</span>
+  </button>
+  <button class="tool hi" id="btnImport" data-tip="<b>📥 Importar</b><br>Cole um código pra carregar um mapa.">
+    <span class="ico">📥</span> <span>Importar</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool" id="btnSave" data-tip="<b>💾 Salvar arquivo</b><br>Aperte <span class='key'>F5</span>."><span class="ico">💾</span></button>
+  <button class="tool" id="btnLoad" data-tip="<b>📂 Abrir arquivo</b><br>Aperte <span class='key'>F9</span>."><span class="ico">📂</span></button>
+  <button class="tool danger" id="btnClear" data-tip="<b>🧹 Limpar tudo</b>"><span class="ico">🧹</span></button>
+</div>
+
+<div id="props" class="hidden">
+  <div id="propsHeader">
+    <h4>✏️ Editando <span class="badgeId" id="propName">—</span></h4>
+  </div>
+
+  <div id="propsHint">
+    💡 <b>Dica:</b> arraste o objeto direto com o mouse! Também dá pra mexer aqui nos números.
+  </div>
+
+  <div class="propSection pos">
+    <div class="propHeader"><span class="ico">📍</span><span>Posição</span></div>
+    <div class="axisRow x">
+      <div class="axisTag">X</div>
+      <button class="stepBtn" data-step="px" data-dir="-1">−</button>
+      <input type="number" step="0.1" data-p="px">
+      <button class="stepBtn" data-step="px" data-dir="1">+</button>
+    </div>
+    <div class="axisRow y">
+      <div class="axisTag">Y</div>
+      <button class="stepBtn" data-step="py" data-dir="-1">−</button>
+      <input type="number" step="0.1" data-p="py">
+      <button class="stepBtn" data-step="py" data-dir="1">+</button>
+    </div>
+    <div class="axisRow z">
+      <div class="axisTag">Z</div>
+      <button class="stepBtn" data-step="pz" data-dir="-1">−</button>
+      <input type="number" step="0.1" data-p="pz">
+      <button class="stepBtn" data-step="pz" data-dir="1">+</button>
+    </div>
+  </div>
+
+  <div class="propSection rot">
+    <div class="propHeader"><span class="ico">🔄</span><span>Rotação</span></div>
+    <div class="axisRow x">
+      <div class="axisTag">X</div>
+      <button class="stepBtn" data-step="rx" data-dir="-15">−</button>
+      <input type="number" step="15" data-p="rx">
+      <button class="stepBtn" data-step="rx" data-dir="15">+</button>
+    </div>
+    <div class="sliderRow"><span class="lblAxis">X</span><input type="range" data-s="rx" min="-180" max="180" step="1"></div>
+    <div class="axisRow y" style="margin-top:10px;">
+      <div class="axisTag">Y</div>
+      <button class="stepBtn" data-step="ry" data-dir="-15">−</button>
+      <input type="number" step="15" data-p="ry">
+      <button class="stepBtn" data-step="ry" data-dir="15">+</button>
+    </div>
+    <div class="sliderRow"><span class="lblAxis">Y</span><input type="range" data-s="ry" min="-180" max="180" step="1"></div>
+    <div class="axisRow z" style="margin-top:10px;">
+      <div class="axisTag">Z</div>
+      <button class="stepBtn" data-step="rz" data-dir="-15">−</button>
+      <input type="number" step="15" data-p="rz">
+      <button class="stepBtn" data-step="rz" data-dir="15">+</button>
+    </div>
+    <div class="sliderRow"><span class="lblAxis">Z</span><input type="range" data-s="rz" min="-180" max="180" step="1"></div>
+  </div>
+
+  <div class="propSection size">
+    <div class="propHeader"><span class="ico">📏</span><span>Tamanho</span></div>
+    <div class="axisRow x">
+      <div class="axisTag">X</div>
+      <button class="stepBtn" data-step="sx" data-dir="-0.1">−</button>
+      <input type="number" step="0.1" data-p="sx">
+      <button class="stepBtn" data-step="sx" data-dir="0.1">+</button>
+    </div>
+    <div class="sliderRow"><span class="lblAxis">X</span><input type="range" data-s="sx" min="0.1" max="10" step="0.1"></div>
+    <div class="axisRow y" style="margin-top:10px;">
+      <div class="axisTag">Y</div>
+      <button class="stepBtn" data-step="sy" data-dir="-0.1">−</button>
+      <input type="number" step="0.1" data-p="sy">
+      <button class="stepBtn" data-step="sy" data-dir="0.1">+</button>
+    </div>
+    <div class="sliderRow"><span class="lblAxis">Y</span><input type="range" data-s="sy" min="0.1" max="10" step="0.1"></div>
+    <div class="axisRow z" style="margin-top:10px;">
+      <div class="axisTag">Z</div>
+      <button class="stepBtn" data-step="sz" data-dir="-0.1">−</button>
+      <input type="number" step="0.1" data-p="sz">
+      <button class="stepBtn" data-step="sz" data-dir="0.1">+</button>
+    </div>
+    <div class="sliderRow"><span class="lblAxis">Z</span><input type="range" data-s="sz" min="0.1" max="10" step="0.1"></div>
+    <div class="actionRow" style="margin-top:12px;">
+      <button class="actionBtn" id="btnUniform" data-tip="Deixa X, Y e Z iguais (cubo perfeito).">📐 Tamanho igual</button>
+    </div>
+  </div>
+
+  <div class="propSection color">
+    <div class="propHeader"><span class="ico">🎨</span><span>Cor</span></div>
+    <div class="colorPickerRow">
+      <input type="color" data-p="color">
+      <div class="swatches">
+        <div class="swatch" data-color="#ff0000" style="background:#ff0000"></div>
+        <div class="swatch" data-color="#ff8c00" style="background:#ff8c00"></div>
+        <div class="swatch" data-color="#ffd700" style="background:#ffd700"></div>
+        <div class="swatch" data-color="#3ba55d" style="background:#3ba55d"></div>
+        <div class="swatch" data-color="#3498db" style="background:#3498db"></div>
+        <div class="swatch" data-color="#a259ff" style="background:#a259ff"></div>
+        <div class="swatch" data-color="#ff69b4" style="background:#ff69b4"></div>
+        <div class="swatch" data-color="#8b4513" style="background:#8b4513"></div>
+        <div class="swatch" data-color="#ffffff" style="background:#ffffff"></div>
+        <div class="swatch" data-color="#808080" style="background:#808080"></div>
+        <div class="swatch" data-color="#000000" style="background:#000000"></div>
+        <div class="swatch" data-color="#7fffd4" style="background:#7fffd4"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actionRow">
+    <button class="actionBtn" id="pDup" data-tip="Cria uma cópia do objeto.">⧉ Duplicar</button>
+    <button class="actionBtn delete" id="pDel" data-tip="Apaga o objeto.">🗑️ Apagar</button>
+  </div>
+</div>
+
+<div id="bottombar">
+  <span>Ferramenta: <span class="stat" id="statTool">Selecionar</span></span>
+  <span>·</span>
+  <span>Objetos: <span class="stat" id="statCount">0</span></span>
+  <span>·</span>
+  <span><kbd>WASD</kbd> mover câmera · <kbd>Botão direito</kbd> girar câmera</span>
+</div>
+
+<div id="ctx">
+  <div class="label">Objeto</div>
+  <button data-action="dup">⧉ Duplicar <kbd>Ctrl+D</kbd></button>
+  <button data-action="copy">📋 Copiar <kbd>Ctrl+C</kbd></button>
+  <button data-action="color">🎨 Cor aleatória</button>
+  <div class="sep"></div>
+  <div class="label">Ferramenta</div>
+  <button data-action="move">✥ Mover <kbd>G</kbd></button>
+  <button data-action="rotate">⟳ Girar <kbd>R</kbd></button>
+  <button data-action="scale">⤢ Tamanho <kbd>S</kbd></button>
+  <button data-action="paint">🎨 Pintar <kbd>C</kbd></button>
+  <div class="sep"></div>
+  <button data-action="del" class="danger">🗑️ Deletar <kbd>Del</kbd></button>
+</div>
+
+<!-- Paleta rápida (aparece ao clicar com Ctrl ou ferramenta Cor) -->
+<div id="quickColor"></div>
+
+<!-- Bolha de feedback (o que tá fazendo) -->
+<div id="hint"><span class="emoji"></span><span class="text"></span></div>
+
+<button id="helpBtn" class="pulse" title="Como usar?">?</button>
+
+<!-- Tooltip -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- ========== MODAL DE AJUDA ========== -->
+<div id="helpModal" class="modal">
+  <div class="modalBox">
+    <div class="modalHeader">
+      <h1>📚 Como usar — Guia completo</h1>
+      <button class="modalClose" data-close="helpModal" title="Fechar (Esc)">✕</button>
+    </div>
+    <div class="modalBody">
+
+      <div class="helpSection">
+        <h2>✨ O que mudou: agora é TUDO no arrastar</h2>
+        <p>Você não precisa mais ficar caçando botão. Agora funciona igual Instagram:</p>
+
+        <div class="demoGrid">
+          <div class="demoCard">
+            <div class="bigEmoji">✥</div>
+            <div class="bigTitle">Mover</div>
+            <div class="bigDesc">Clica no bloco e <b>arrasta</b> pra onde quiser</div>
+          </div>
+          <div class="demoCard">
+            <div class="bigEmoji">⟳</div>
+            <div class="bigTitle">Girar</div>
+            <div class="bigDesc">Aperta <b>R</b>, clica no bloco e <b>arrasta em círculo</b></div>
+          </div>
+          <div class="demoCard">
+            <div class="bigEmoji">⤢</div>
+            <div class="bigTitle">Tamanho</div>
+            <div class="bigDesc">Aperta <b>S</b>, clica e <b>arrasta pra fora</b> (aumenta) ou <b>pra dentro</b> (diminui)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="helpSection">
+        <h2>🎨 As 5 ferramentas (com cor cada uma)</h2>
+        <div class="grid2">
+          <div class="card">
+            <div class="key">🖱️</div>
+            <div class="desc"><b>Selecionar</b><small>Clica pra escolher um bloco. <b>E também pode arrastar direto</b> pra mover.</small></div>
+          </div>
+          <div class="card">
+            <div class="key">✥</div>
+            <div class="desc"><b>Mover</b><small>Clica no bloco e arrasta. O bloco segue o mouse.</small></div>
+          </div>
+          <div class="card">
+            <div class="key">⟳</div>
+            <div class="desc"><b>Girar</b><small>Clica no bloco e gira o mouse em círculo.</small></div>
+          </div>
+          <div class="card">
+            <div class="key">⤢</div>
+            <div class="desc"><b>Tamanho</b><small>Arrasta pra fora = maior. Pra dentro = menor.</small></div>
+          </div>
+          <div class="card">
+            <div class="key">🎨</div>
+            <div class="desc"><b>Pintar</b><small>Clica no bloco e a paleta aparece do lado.</small></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="helpSection">
+        <h2>🖱️ 3 jeitos de fazer cada coisa</h2>
+        <p>Você escolhe o que for mais fácil:</p>
+        <div class="grid2">
+          <div class="card">
+            <div class="key">1</div>
+            <div class="desc"><b>Arrastando direto</b><small>O jeito mais natural — clica e arrasta</small></div>
+          </div>
+          <div class="card">
+            <div class="key">2</div>
+            <div class="desc"><b>Barra de ferramentas</b><small>Clica no botão e usa</small></div>
+          </div>
+          <div class="card">
+            <div class="key">3</div>
+            <div class="desc"><b>Painel da direita</b><small>Mexe nos números e sliders</small></div>
+          </div>
+        </div>
+        <div class="tip">
+          <b>Todos funcionam ao mesmo tempo!</b> Se você tá movendo pelo painel e não gostou,
+          pode arrastar direto no objeto que também funciona.
+        </div>
+      </div>
+
+      <div class="helpSection">
+        <h2>🎨 Pintar de 3 jeitos</h2>
+        <div class="grid2">
+          <div class="card"><div class="key">Ctrl+Clique</div><div class="desc"><b>Paleta rápida</b><small>Aparece do lado do mouse</small></div></div>
+          <div class="card"><div class="key">C</div><div class="desc"><b>Ferramenta Pintar</b><small>Ativa modo pincel</small></div></div>
+          <div class="card"><div class="key">🎨</div><div class="desc"><b>Painel roxo</b><small>Escolhe a cor lá</small></div></div>
+          <div class="card"><div class="key">Botão direito</div><div class="desc"><b>Menu rápido</b><small>Também tem "Cor aleatória"</small></div></div>
+        </div>
+      </div>
+
+      <div class="helpSection">
+        <h2>⌨️ Atalhos</h2>
+        <div class="grid2">
+          <div class="card"><div class="key">G</div><div class="desc"><b>Mover</b></div></div>
+          <div class="card"><div class="key">R</div><div class="desc"><b>Girar</b></div></div>
+          <div class="card"><div class="key">S</div><div class="desc"><b>Tamanho</b></div></div>
+          <div class="card"><div class="key">C</div><div class="desc"><b>Pintar</b></div></div>
+          <div class="card"><div class="key">Ctrl+Z</div><div class="desc"><b>Desfazer</b></div></div>
+          <div class="card"><div class="key">Ctrl+Y</div><div class="desc"><b>Refazer</b></div></div>
+          <div class="card"><div class="key">Ctrl+D</div><div class="desc"><b>Duplicar</b></div></div>
+          <div class="card"><div class="key">Del</div><div class="desc"><b>Deletar</b></div></div>
+          <div class="card"><div class="key">Esc</div><div class="desc"><b>Desselecionar</b></div></div>
+          <div class="card"><div class="key">Tab</div><div class="desc"><b>Esconder menu</b></div></div>
+        </div>
+      </div>
+
+      <div class="helpSection">
+        <h2>📤 Compartilhar mapas</h2>
+        <ol style="padding-left: 20px; font-size: 14px; line-height: 2;">
+          <li>Clique em <b>📤 Exportar</b></li>
+          <li>Clique em <b>Copiar código</b></li>
+          <li>Mande pra alguém</li>
+          <li>A pessoa clica em <b>📥 Importar</b>, cola, e pronto!</li>
+        </ol>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal código -->
+<div id="codeModal" class="modal">
+  <div class="modalBox" style="max-width:720px;">
+    <div class="modalHeader">
+      <h1 id="codeModalTitle">📤 Exportar mapa</h1>
+      <button class="modalClose" data-close="codeModal">✕</button>
+    </div>
+    <div class="modalBody">
+
+      <div id="codeExportView">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#8a8f98;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+          <span>Seu código do mapa</span>
+          <span id="codeLen" style="color:#5865f2;text-transform:none;letter-spacing:0;">— caracteres</span>
+        </div>
+        <textarea id="exportCode" readonly style="width:100%;background:#0f1115;border:1px solid #3a3f47;border-radius:12px;color:#7fffd4;padding:14px;font-family:'Courier New',monospace;font-size:12px;resize:vertical;min-height:120px;outline:none;word-break:break-all;"></textarea>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
+          <div style="background:#24272e;border:1px solid #3a3f47;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:#5865f2;" id="statBlocks">0</div>
+            <div style="font-size:11px;text-transform:uppercase;color:#8a8f98;">Blocos</div>
+          </div>
+          <div style="background:#24272e;border:1px solid #3a3f47;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:#5865f2;" id="statSize">0 B</div>
+            <div style="font-size:11px;text-transform:uppercase;color:#8a8f98;">Tamanho</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button class="actionBtn" style="background:#5865f2;color:#fff;flex:1;min-width:140px;padding:12px;" id="btnCopyCode">📋 Copiar código</button>
+          <button class="actionBtn" style="background:#3ba55d;color:#fff;flex:1;min-width:140px;padding:12px;" id="btnShareCode">🔗 Link mágico</button>
+          <button class="actionBtn" style="background:#7a2b2b;color:#fff;padding:12px;" id="btnCloseExport">✕</button>
+        </div>
+      </div>
+
+      <div id="codeImportView" style="display:none">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#8a8f98;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
+          <span>Cole o código do mapa</span>
+          <span id="importLen" style="color:#5865f2;text-transform:none;letter-spacing:0;">— caracteres</span>
+        </div>
+        <textarea id="importCode" placeholder="Cole aqui o código (começa com MS3D:...)" style="width:100%;background:#0f1115;border:1px solid #3a3f47;border-radius:12px;color:#7fffd4;padding:14px;font-family:'Courier New',monospace;font-size:12px;resize:vertical;min-height:120px;outline:none;word-break:break-all;"></textarea>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button class="actionBtn" style="background:#3ba55d;color:#fff;flex:1;min-width:140px;padding:12px;" id="btnDoImport">📥 Importar</button>
+          <button class="actionBtn" style="flex:1;min-width:140px;padding:12px;" id="btnPasteClipboard">📋 Colar</button>
+          <button class="actionBtn" style="background:#7a2b2b;color:#fff;padding:12px;" id="btnCloseImport">✕</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "pako": "https://unpkg.com/pako@2.1.0/dist/pako.esm.mjs"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import * as pako from 'pako';
+
+/* ============================================================
+   CENA
+============================================================ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x3a3f47);
+scene.fog = new THREE.Fog(0x3a3f47, 60, 200);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(10, 10, 10);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ============================================================
+   LUZES
+============================================================ */
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.3);
+sun.position.set(20, 40, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-40, right:40, top:40, bottom:-40 });
+scene.add(sun);
+
+/* ============================================================
+   CHÃO + GRADE
+============================================================ */
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(500, 500),
+  new THREE.MeshBasicMaterial({ visible: false })
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+const grid = new THREE.GridHelper(200, 100, 0x5a5f68, 0x4a4f57);
+grid.material.transparent = true;
+grid.material.opacity = 0.6;
+scene.add(grid);
+
+/* ============================================================
+   CÂMERA
+============================================================ */
+const keys = {};
+addEventListener('keydown', e => keys[e.code] = true);
+addEventListener('keyup',   e => keys[e.code] = false);
+
+let isRotatingCam = false;
+let yaw = Math.PI / 4;
+let pitch = -Math.PI / 5;
+const camPos = new THREE.Vector3(10, 10, 10);
+
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+function updateCamera(delta) {
+  const speed = keys['ShiftLeft'] || keys['ShiftRight'] ? 40 : 18;
+  const fwd = new THREE.Vector3(
+    Math.sin(yaw) * Math.cos(pitch),
+    Math.sin(pitch),
+    Math.cos(yaw) * Math.cos(pitch)
+  );
+  const right = new THREE.Vector3(-Math.cos(yaw), 0, Math.sin(yaw));
+
+  const mv = new THREE.Vector3();
+  if (keys['KeyW']) mv.add(fwd);
+  if (keys['KeyS']) mv.sub(fwd);
+  if (keys['KeyD']) mv.add(right);
+  if (keys['KeyA']) mv.sub(right);
+  if (keys['KeyE']) mv.y += 1;
+  if (keys['KeyQ']) mv.y -= 1;
+  if (mv.lengthSq() > 0) camPos.add(mv.normalize().multiplyScalar(speed * delta));
+  camera.position.copy(camPos);
+  camera.lookAt(camPos.clone().add(fwd));
+}
+
+addEventListener('wheel', e => {
+  const fwd = new THREE.Vector3(
+    Math.sin(yaw) * Math.cos(pitch),
+    Math.sin(pitch),
+    Math.cos(yaw) * Math.cos(pitch)
+  );
+  camPos.addScaledVector(fwd, -Math.sign(e.deltaY) * 2);
+}, { passive: true });
+
+/* ============================================================
+   FORMAS
+============================================================ */
+function makeGeometry(shape) {
+  switch (shape) {
+    case 'box':      return new THREE.BoxGeometry(1,1,1);
+    case 'sphere':   return new THREE.SphereGeometry(0.5, 32, 20);
+    case 'triangle': return new THREE.CylinderGeometry(0.6, 0.6, 1, 3);
+    case 'cylinder': return new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+    case 'cone':     return new THREE.ConeGeometry(0.5, 1, 32);
+    case 'wedge': {
+      const g = new THREE.BufferGeometry();
+      const v = new Float32Array([
+        -0.5,-0.5,-0.5,  0.5,-0.5,-0.5,  0.5,-0.5,0.5,  -0.5,-0.5,0.5,
+        -0.5, 0.5,-0.5,  0.5, 0.5,-0.5,
+      ]);
+      g.setAttribute('position', new THREE.BufferAttribute(v,3));
+      g.setIndex([0,1,2, 0,2,3, 0,3,4, 4,3,2, 4,2,5, 0,4,5, 0,5,1, 1,5,2]);
+      g.computeVertexNormals();
+      return g;
+    }
+  }
+  return new THREE.BoxGeometry(1,1,1);
+}
+
+/* ============================================================
+   OBJETOS
+============================================================ */
+const objectsGroup = new THREE.Group();
+scene.add(objectsGroup);
+
+let objId = 0;
+function createObject(shape, pos, color = 0xa0a4ab, rotation, scale) {
+  const geo = makeGeometry(shape);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.08 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(pos);
+  if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+  if (scale) mesh.scale.set(scale[0], scale[1], scale[2]);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.userData = { isObject: true, shape, id: ++objId, baseEmissive: 0x000000 };
+  objectsGroup.add(mesh);
+  updateCount();
+  return mesh;
+}
+
+function updateCount() {
+  document.getElementById('statCount').textContent = objectsGroup.children.length;
+}
+
+/* ============================================================
+   SELEÇÃO
+============================================================ */
+let selected = null;
+let currentShape = 'box';
+
+function setOutline(mesh, on) {
+  if (!mesh) return;
+  if (on) {
+    mesh.material.emissive = new THREE.Color(0x5865f2);
+    mesh.material.emissiveIntensity = 0.35;
+  } else {
+    mesh.material.emissive = new THREE.Color(0x000000);
+    mesh.material.emissiveIntensity = 0;
+  }
+}
+
+// Contorno de seleção (box helper)
+let selectionBox = null;
+function updateSelectionBox() {
+  if (selectionBox) { scene.remove(selectionBox); selectionBox.geometry.dispose(); selectionBox = null; }
+  if (!selected) return;
+  const box = new THREE.BoxHelper(selected, 0x5865f2);
+  box.material.linewidth = 3;
+  scene.add(box);
+  selectionBox = box;
+}
+
+function selectObject(mesh) {
+  if (selected === mesh) return;
+  if (selected) setOutline(selected, false);
+  selected = mesh;
+  if (mesh) {
+    setOutline(mesh, true);
+    updateSelectionBox();
+  } else if (selectionBox) {
+    scene.remove(selectionBox); selectionBox.geometry.dispose(); selectionBox = null;
+  }
+  refreshProps();
+}
+
+/* ============================================================
+   HINT (bolha de feedback)
+============================================================ */
+const hintEl = document.getElementById('hint');
+let hintTimer = null;
+function showHint(emoji, text, duration = 1800) {
+  hintEl.querySelector('.emoji').textContent = emoji;
+  hintEl.querySelector('.text').textContent = text;
+  hintEl.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => hintEl.classList.remove('show'), duration);
+}
+
+/* ============================================================
+   FERRAMENTAS
+============================================================ */
+let currentTool = 'select';
+const toolInfo = {
+  select: { emoji:'🖱️', name:'Selecionar', hint:['🖱️', 'Clique num bloco. Arraste pra mover.'] },
+  move:   { emoji:'✥', name:'Mover',   hint:['✥', 'Arraste o bloco pra onde quiser!'] },
+  rotate: { emoji:'⟳', name:'Girar',   hint:['⟳', 'Arraste em círculo pra girar.'] },
+  scale:  { emoji:'⤢', name:'Tamanho', hint:['⤢', 'Arraste pra fora (maior) ou dentro (menor).'] },
+  color:  { emoji:'🎨', name:'Pintar',  hint:['🎨', 'Clique num bloco pra abrir a paleta.'] },
+};
+
+function setTool(t, silent=false) {
+  currentTool = t;
+  document.querySelectorAll('#topbar .tool[data-tool]').forEach(b => {
+    b.classList.toggle('active', b.dataset.tool === t);
+  });
+  document.getElementById('statTool').textContent = toolInfo[t].name;
+  document.body.className = 'tool-' + t;
+  if (!silent) showHint(toolInfo[t].hint[0], toolInfo[t].hint[1]);
+}
+
+document.querySelectorAll('#topbar .tool[data-tool]').forEach(b => {
+  b.onclick = () => setTool(b.dataset.tool);
+});
+
+/* ============================================================
+   MANIPULAÇÃO DIRETA (a estrela do show)
+   ------------------------------------------------------------
+   - pointerdown no objeto → começa operação
+   - pointermove → aplica mudança
+   - pointerup → finaliza
+============================================================ */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+
+function ndcFrom(e) {
+  ndc.x = (e.clientX / innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+}
+
+function hitAt(e) {
+  ndcFrom(e);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(objectsGroup.children, false);
+  return hits[0] || null;
+}
+
+function hitGround(e) {
+  ndcFrom(e);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObject(ground, false);
+  return hits[0] || null;
+}
+
+// Estado da operação atual
+let op = null;  // { type, obj, start, data }
+
+// Plano de movimento (segue a câmera, no eixo Y do objeto) pra arrastar no plano horizontal
+const movePlane = new THREE.Plane();
+const moveHitPoint = new THREE.Vector3();
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  // Botão direito = girar câmera
+  if (e.button === 2) {
+    isRotatingCam = true;
+    return;
+  }
+  if (e.button !== 0) return;      // só botão esquerdo manipula
+  if (e.altKey) { isRotatingCam = true; return; }  // alt = câmera
+
+  const hit = hitAt(e);
+
+  // Se não tem objeto e a ferramenta é "color" → nada
+  // Se clicou no chão e ferramenta é "select" → cria objeto novo
+  // Se clicou em objeto → começa operação
+
+  if (!hit) {
+    // Sem objeto → talvez criar
+    if (currentTool === 'select') {
+      const g = hitGround(e);
+      if (g) {
+        // guarda pra criar no pointerup (se não arrastou)
+        op = {
+          type: 'maybe-create',
+          startX: e.clientX, startY: e.clientY,
+          point: g.point.clone(),
+          moved: false,
+        };
+      }
+    }
+    return;
+  }
+
+  // Clicou em objeto
+  const obj = hit.object;
+  selectObject(obj);
+
+  // Pintar = só abre paleta, não arrasta
+  if (currentTool === 'color') {
+    openQuickColor(e.clientX, e.clientY, obj);
+    op = null;
+    return;
+  }
+
+  // Inicia operação de manipulação
+  const tool = currentTool === 'select' ? 'move' : currentTool;
+
+  if (tool === 'move') {
+    // Plano perpendicular à câmera, passando pelo objeto
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    const objPos = new THREE.Vector3();
+    obj.getWorldPosition(objPos);
+    movePlane.setFromNormalAndCoplanarPoint(camDir.clone().negate(), objPos);
+
+    op = {
+      type: 'move',
+      obj,
+      startPos: obj.position.clone(),
+      startX: e.clientX, startY: e.clientY,
+      startHit: hit.point.clone(),
+      moved: false,
+    };
+    document.body.classList.add('dragging');
+    showHint('✥', 'Arrastando... solta pra fixar!', 999999);
+  }
+  else if (tool === 'rotate') {
+    op = {
+      type: 'rotate',
+      obj,
+      startRotY: obj.rotation.y,
+      startRotX: obj.rotation.x,
+      startX: e.clientX, startY: e.clientY,
+      moved: false,
+    };
+    document.body.classList.add('dragging');
+    showHint('⟳', 'Girando... solta pra fixar!', 999999);
+  }
+  else if (tool === 'scale') {
+    op = {
+      type: 'scale',
+      obj,
+      startScale: obj.scale.clone(),
+      startX: e.clientX, startY: e.clientY,
+      moved: false,
+    };
+    document.body.classList.add('dragging');
+    showHint('⤢', 'Arrasta pra fora = maior · pra dentro = menor', 999999);
+  }
+});
+
+addEventListener('pointermove', e => {
+  // Atualiza cursor e highlight (hover)
+  if (!op) {
+    const hit = hitAt(e);
+    // (não faz hover highlight pra não confundir; só cursor do CSS)
+    return;
+  }
+
+  const dx = e.clientX - op.startX;
+  const dy = e.clientY - op.startY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) op.moved = true;
+
+  if (op.type === 'maybe-create') return;
+
+  if (op.type === 'move') {
+    // Projeta o mouse no plano e usa o delta
+    ndcFrom(e);
+    raycaster.setFromCamera(ndc, camera);
+    if (raycaster.ray.intersectPlane(movePlane, moveHitPoint)) {
+      const delta = moveHitPoint.clone().sub(op.startHit);
+      op.obj.position.copy(op.startPos.clone().add(delta));
+      updateSelectionBox();
+      refreshProps();
+    }
+  }
+  else if (op.type === 'rotate') {
+    // Rotação: X horizontal = gira Y, Y vertical = gira X
+    op.obj.rotation.y = op.startRotY + dx * 0.01;
+    op.obj.rotation.x = op.startRotX + dy * 0.01;
+    updateSelectionBox();
+    refreshProps();
+  }
+  else if (op.type === 'scale') {
+    // Distância do centro pra fora = aumenta
+    const dist = Math.hypot(dx, dy);
+    const sign = (dx + dy) > 0 ? 1 : -1;  // direção
+    const factor = 1 + (sign * dist * 0.005);
+    const newScale = op.startScale.clone().multiplyScalar(Math.max(0.1, factor));
+    op.obj.scale.copy(newScale);
+    updateSelectionBox();
+    refreshProps();
+  }
+});
+
+addEventListener('pointerup', e => {
+  if (e.button === 2) { isRotatingCam = false; return; }
+  if (e.button === 0 && e.altKey) { isRotatingCam = false; return; }
+  if (!op) return;
+
+  const wasMaybeCreate = op.type === 'maybe-create';
+  const moved = op.moved;
+  const point = op.point;
+  const opType = op.type;
+
+  op = null;
+  document.body.classList.remove('dragging');
+
+  if (opType === 'move' || opType === 'rotate' || opType === 'scale') {
+    hideHint();
+    pushHistory();
+    return;
+  }
+
+  if (wasMaybeCreate && !moved) {
+    // Criar objeto novo
+    if (point) {
+      const pt = point.clone();
+      pt.x = Math.round(pt.x * 2) / 2;
+      pt.z = Math.round(pt.z * 2) / 2;
+      pt.y = 0.5;
+      const obj = createObject(currentShape, pt);
+      pushHistory();
+      selectObject(obj);
+      showHint('✨', 'Bloco criado!');
+    }
+  }
+});
+
+addEventListener('pointercancel', () => {
+  op = null;
+  isRotatingCam = false;
+  document.body.classList.remove('dragging');
+});
+
+function hideHint() {
+  hintEl.classList.remove('show');
+  clearTimeout(hintTimer);
+}
+
+/* ============================================================
+   ROTAÇÃO DE CÂMERA (botão direito / Alt+clique)
+============================================================ */
+addEventListener('pointermove', e => {
+  if (isRotatingCam) {
+    yaw   -= e.movementX * 0.005;
+    pitch -= e.movementY * 0.005;
+    pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+  }
+});
+
+/* ============================================================
+   PALETA RÁPIDA DE COR
+============================================================ */
+const quickColor = document.getElementById('quickColor');
+const QUICK_COLORS = [
+  '#ff0000','#ff8c00','#ffd700','#3ba55d','#3498db','#a259ff',
+  '#ff69b4','#8b4513','#ffffff','#808080','#000000','#7fffd4',
+  '#ff6b6b','#feca57','#48dbfb','#1dd1a1','#5f27cd','#ee5a6f'
+];
+
+QUICK_COLORS.forEach(c => {
+  const d = document.createElement('div');
+  d.className = 'swatch';
+  d.style.background = c;
+  d.dataset.color = c;
+  d.onclick = () => {
+    if (quickColor.targetObj) {
+      quickColor.targetObj.material.color.set(c);
+      pushHistory();
+      refreshProps();
+    }
+    quickColor.classList.remove('show');
+  };
+  quickColor.appendChild(d);
+});
+
+function openQuickColor(x, y, obj) {
+  quickColor.targetObj = obj;
+  quickColor.style.left = Math.min(x + 10, innerWidth - 250) + 'px';
+  quickColor.style.top = Math.min(y + 10, innerHeight - 200) + 'px';
+  quickColor.classList.add('show');
+}
+
+document.addEventListener('click', e => {
+  if (!quickColor.contains(e.target) && !e.target.closest('#props')) {
+    quickColor.classList.remove('show');
+  }
+});
+
+/* ============================================================
+   PAINEL DE PROPRIEDADES
+============================================================ */
+const propsEl = document.getElementById('props');
+
+function refreshProps() {
+  if (!selected) { propsEl.classList.add('hidden'); return; }
+  propsEl.classList.remove('hidden');
+  document.getElementById('propName').textContent = '#' + selected.userData.id;
+
+  const p = selected.position;
+  const r = selected.rotation;
+  const s = selected.scale;
+  const c = '#' + selected.material.color.getHexString();
+
+  setInput('px', p.x.toFixed(2));
+  setInput('py', p.y.toFixed(2));
+  setInput('pz', p.z.toFixed(2));
+  setInput('rx', (r.x * 180/Math.PI).toFixed(0));
+  setInput('ry', (r.y * 180/Math.PI).toFixed(0));
+  setInput('rz', (r.z * 180/Math.PI).toFixed(0));
+  setInput('sx', s.x.toFixed(2));
+  setInput('sy', s.y.toFixed(2));
+  setInput('sz', s.z.toFixed(2));
+  setInput('color', c);
+
+  setSlider('rx', (r.x * 180/Math.PI));
+  setSlider('ry', (r.y * 180/Math.PI));
+  setSlider('rz', (r.z * 180/Math.PI));
+  setSlider('sx', s.x);
+  setSlider('sy', s.y);
+  setSlider('sz', s.z);
+}
+
+function setInput(p, v) {
+  const el = propsEl.querySelector(`input[data-p="${p}"]`);
+  if (el && document.activeElement !== el) el.value = v;
+}
+function setSlider(p, v) {
+  const el = propsEl.querySelector(`input[data-s="${p}"]`);
+  if (el && document.activeElement !== el) el.value = v;
+}
+
+propsEl.querySelectorAll('input[data-p]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    if (!selected) return;
+    const v = parseFloat(inp.value);
+    if (isNaN(v)) return;
+    applyProp(inp.dataset.p, v);
+    updateSelectionBox();
+    debouncedHistory();
+  });
+});
+
+propsEl.querySelectorAll('input[data-s]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    if (!selected) return;
+    const v = parseFloat(inp.value);
+    applyProp(inp.dataset.s, v);
+    updateSelectionBox();
+    debouncedHistory();
+  });
+});
+
+propsEl.querySelectorAll('.stepBtn').forEach(btn => {
+  btn.onclick = () => {
+    if (!selected) return;
+    const prop = btn.dataset.step;
+    const delta = parseFloat(btn.dataset.dir);
+    const cur = getPropValue(prop);
+    applyProp(prop, cur + delta);
+    pushHistory();
+    refreshProps();
+    updateSelectionBox();
+  };
+});
+
+function getPropValue(prop) {
+  if (!selected) return 0;
+  const r2d = 180/Math.PI;
+  if (prop === 'px') return selected.position.x;
+  if (prop === 'py') return selected.position.y;
+  if (prop === 'pz') return selected.position.z;
+  if (prop === 'rx') return selected.rotation.x * r2d;
+  if (prop === 'ry') return selected.rotation.y * r2d;
+  if (prop === 'rz') return selected.rotation.z * r2d;
+  if (prop === 'sx') return selected.scale.x;
+  if (prop === 'sy') return selected.scale.y;
+  if (prop === 'sz') return selected.scale.z;
+  return 0;
+}
+
+function applyProp(prop, v) {
+  if (!selected) return;
+  const d2r = Math.PI/180;
+  if (prop === 'px') selected.position.x = v;
+  if (prop === 'py') selected.position.y = v;
+  if (prop === 'pz') selected.position.z = v;
+  if (prop === 'rx') selected.rotation.x = v * d2r;
+  if (prop === 'ry') selected.rotation.y = v * d2r;
+  if (prop === 'rz') selected.rotation.z = v * d2r;
+  if (prop === 'sx') selected.scale.x = Math.max(0.01, v);
+  if (prop === 'sy') selected.scale.y = Math.max(0.01, v);
+  if (prop === 'sz') selected.scale.z = Math.max(0.01, v);
+  if (prop === 'color') selected.material.color.set(v);
+}
+
+propsEl.querySelectorAll('.swatch[data-color]').forEach(sw => {
+  sw.onclick = () => {
+    if (!selected) return;
+    selected.material.color.set(sw.dataset.color);
+    setInput('color', sw.dataset.color);
+    pushHistory();
+  };
+});
+
+document.getElementById('btnUniform').onclick = () => {
+  if (!selected) return;
+  const avg = (selected.scale.x + selected.scale.y + selected.scale.z) / 3;
+  selected.scale.set(avg, avg, avg);
+  pushHistory();
+  refreshProps();
+  updateSelectionBox();
+};
+
+document.getElementById('pDup').onclick = duplicateSelected;
+document.getElementById('pDel').onclick = deleteSelected;
+
+/* ============================================================
+   MENU DE CONTEXTO
+============================================================ */
+const ctx = document.getElementById('ctx');
+renderer.domElement.addEventListener('contextmenu', e => {
+  if (e.altKey) return;
+  e.preventDefault();
+  const hit = hitAt(e);
+  if (hit) {
+    selectObject(hit.object);
+    ctx.style.left = e.clientX + 'px';
+    ctx.style.top = e.clientY + 'px';
+    ctx.classList.add('show');
+  } else {
+    ctx.classList.remove('show');
+  }
+});
+document.addEventListener('click', () => ctx.classList.remove('show'));
+
+ctx.querySelectorAll('button').forEach(b => {
+  b.onclick = () => {
+    const a = b.dataset.action;
+    if (a === 'dup') duplicateSelected();
+    if (a === 'copy') copySelected();
+    if (a === 'del') deleteSelected();
+    if (a === 'color' && selected) {
+      selected.material.color.setHex(Math.floor(Math.random() * 0xffffff));
+      pushHistory();
+      refreshProps();
+    }
+    if (a === 'move') setTool('move');
+    if (a === 'rotate') setTool('rotate');
+    if (a === 'scale') setTool('scale');
+    if (a === 'paint') setTool('color');
+    ctx.classList.remove('show');
+  };
+});
+
+/* ============================================================
+   AÇÕES
+============================================================ */
+let clipboard = null;
+
+function duplicateSelected() {
+  if (!selected) return;
+  const c = selected.clone();
+  c.material = selected.material.clone();
+  c.userData = { ...selected.userData, id: ++objId };
+  c.position.x += 1;
+  objectsGroup.add(c);
+  updateCount();
+  pushHistory();
+  selectObject(c);
+  showHint('⧉', 'Duplicado!');
+}
+
+function copySelected() {
+  if (!selected) return;
+  clipboard = {
+    shape: selected.userData.shape,
+    position: selected.position.clone(),
+    rotation: selected.rotation.clone(),
+    scale: selected.scale.clone(),
+    color: selected.material.color.getHex()
+  };
+  showHint('📋', 'Copiado!');
+}
+
+function pasteClipboard() {
+  if (!clipboard) return;
+  const m = createObject(clipboard.shape, clipboard.position.clone().add(new THREE.Vector3(1,0,0)), clipboard.color);
+  m.rotation.copy(clipboard.rotation);
+  m.scale.copy(clipboard.scale);
+  pushHistory();
+  selectObject(m);
+}
+
+function deleteSelected() {
+  if (!selected) return;
+  objectsGroup.remove(selected);
+  selectObject(null);
+  updateCount();
+  pushHistory();
+}
+
+/* ============================================================
+   HISTÓRICO
+============================================================ */
+const undoStack = [], redoStack = [];
+let lastSnap = null;
+
+function snapshot() {
+  return JSON.stringify(objectsGroup.children.map(o => ({
+    shape: o.userData.shape,
+    position: o.position.toArray(),
+    rotation: [o.rotation.x, o.rotation.y, o.rotation.z],
+    scale: o.scale.toArray(),
+    color: o.material.color.getHex()
+  })));
+}
+
+function restore(str) {
+  while (objectsGroup.children.length) {
+    const c = objectsGroup.children.pop();
+    c.geometry?.dispose();
+    c.material?.dispose();
+  }
+  JSON.parse(str).forEach(d => {
+    const m = createObject(d.shape, new THREE.Vector3().fromArray(d.position), d.color);
+    m.rotation.set(d.rotation[0], d.rotation[1], d.rotation[2]);
+    m.scale.fromArray(d.scale);
+  });
+  selectObject(null);
+}
+
+function pushHistory() {
+  const s = snapshot();
+  if (s === lastSnap) return;
+  if (lastSnap !== null) undoStack.push(lastSnap);
+  if (undoStack.length > 200) undoStack.shift();
+  redoStack.length = 0;
+  lastSnap = s;
+}
+
+let histTimer = null;
+function debouncedHistory() {
+  clearTimeout(histTimer);
+  histTimer = setTimeout(pushHistory, 400);
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(snapshot());
+  const s = undoStack.pop();
+  restore(s);
+  lastSnap = s;
+  showHint('↶', 'Desfeito');
+}
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(snapshot());
+  const s = redoStack.pop();
+  restore(s);
+  lastSnap = s;
+  showHint('↷', 'Refeito');
+}
+
+document.getElementById('btnUndo').onclick = undo;
+document.getElementById('btnRedo').onclick = redo;
+
+/* ============================================================
+   CÓDIGO DO MAPA
+============================================================ */
+const CODE_PREFIX = 'MS3D:';
+
+function serializeMap() {
+  return objectsGroup.children.map(o => {
+    const r3 = n => Math.round(n * 1000) / 1000;
+    return [
+      o.userData.shape,
+      r3(o.position.x), r3(o.position.y), r3(o.position.z),
+      r3(o.rotation.x), r3(o.rotation.y), r3(o.rotation.z),
+      r3(o.scale.x), r3(o.scale.y), r3(o.scale.z),
+      o.material.color.getHex()
+    ];
+  });
+}
+
+function encodeMap() {
+  const data = serializeMap();
+  const json = JSON.stringify(data);
+  const bytes = new TextEncoder().encode(json);
+  const compressed = pako.deflate(bytes);
+  return CODE_PREFIX + bytesToBase64url(compressed);
+}
+
+function decodeMap(code) {
+  code = code.trim();
+  if (!code.startsWith(CODE_PREFIX)) throw new Error('Código inválido.');
+  const b64 = code.slice(CODE_PREFIX.length);
+  const compressed = base64urlToBytes(b64);
+  const bytes = pako.inflate(compressed);
+  const json = new TextDecoder().decode(bytes);
+  const data = JSON.parse(json);
+  if (!Array.isArray(data)) throw new Error('Código não contém blocos.');
+  return data;
+}
+
+function applyMapData(data) {
+  while (objectsGroup.children.length) {
+    const c = objectsGroup.children.pop();
+    c.geometry?.dispose();
+    c.material?.dispose();
+  }
+  data.forEach(arr => {
+    if (!Array.isArray(arr) || arr.length !== 11) return;
+    const [shape, px,py,pz, rx,ry,rz, sx,sy,sz, color] = arr;
+    createObject(shape, new THREE.Vector3(px,py,pz), color, [rx,ry,rz], [sx,sy,sz]);
+  });
+  selectObject(null);
+}
+
+function bytesToBase64url(bytes) {
+  let bin = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+  }
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+function base64urlToBytes(str) {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  const bin = atob(str);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* ============================================================
+   MODAIS
+============================================================ */
+const codeModal = document.getElementById('codeModal');
+const codeModalTitle = document.getElementById('codeModalTitle');
+const codeExportView = document.getElementById('codeExportView');
+const codeImportView = document.getElementById('codeImportView');
+const exportCode = document.getElementById('exportCode');
+const importCode = document.getElementById('importCode');
+const codeLen = document.getElementById('codeLen');
+const importLen = document.getElementById('importLen');
+
+function openExport() {
+  const code = encodeMap();
+  exportCode.value = code;
+  codeLen.textContent = code.length.toLocaleString('pt-BR') + ' caracteres';
+  document.getElementById('statBlocks').textContent = objectsGroup.children.length;
+  document.getElementById('statSize').textContent = formatBytes(new TextEncoder().encode(code).length);
+  codeModalTitle.textContent = '📤 Exportar mapa';
+  codeExportView.style.display = '';
+  codeImportView.style.display = 'none';
+  codeModal.classList.add('show');
+}
+
+function openImport() {
+  codeModalTitle.textContent = '📥 Importar mapa';
+  codeExportView.style.display = 'none';
+  codeImportView.style.display = '';
+  importCode.value = '';
+  importLen.textContent = '— caracteres';
+  codeModal.classList.add('show');
+  setTimeout(() => importCode.focus(), 50);
+}
+
+document.getElementById('btnExport').onclick = openExport;
+document.getElementById('btnImport').onclick = openImport;
+
+importCode.addEventListener('input', () => {
+  importLen.textContent = importCode.value.length.toLocaleString('pt-BR') + ' caracteres';
+});
+
+document.getElementById('btnCopyCode').onclick = async () => {
+  const btn = document.getElementById('btnCopyCode');
+  try {
+    await navigator.clipboard.writeText(exportCode.value);
+    const old = btn.textContent;
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => btn.textContent = old, 1500);
+  } catch (e) {
+    exportCode.select();
+    document.execCommand('copy');
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => btn.textContent = '📋 Copiar código', 1500);
+  }
+};
+
+document.getElementById('btnShareCode').onclick = async () => {
+  const url = new URL(location.href);
+  url.hash = '#' + encodeURIComponent(exportCode.value);
+  try {
+    await navigator.clipboard.writeText(url.toString());
+    const btn = document.getElementById('btnShareCode');
+    const old = btn.textContent;
+    btn.textContent = '✅ Link copiado!';
+    setTimeout(() => btn.textContent = old, 1500);
+  } catch (e) {
+    alert('Link gerado (copie manualmente):\n\n' + url.toString());
+  }
+};
+
+document.getElementById('btnDoImport').onclick = () => {
+  const code = importCode.value.trim();
+  if (!code) { alert('Cole um código primeiro!'); return; }
+  try {
+    const data = decodeMap(code);
+    applyMapData(data);
+    pushHistory();
+    codeModal.classList.remove('show');
+    showHint('✅', `Mapa importado! ${data.length} blocos`, 2500);
+  } catch (err) {
+    alert('❌ Erro ao importar:\n\n' + err.message);
+  }
+};
+
+document.getElementById('btnPasteClipboard').onclick = async () => {
+  try {
+    const txt = await navigator.clipboard.readText();
+    importCode.value = txt.trim();
+    importLen.textContent = importCode.value.length.toLocaleString('pt-BR') + ' caracteres';
+  } catch (e) {
+    alert('Cole manualmente (Ctrl+V).');
+  }
+};
+
+document.getElementById('btnCloseExport').onclick = () => codeModal.classList.remove('show');
+document.getElementById('btnCloseImport').onclick = () => codeModal.classList.remove('show');
+
+document.querySelectorAll('.modalClose').forEach(btn => {
+  btn.onclick = () => document.getElementById(btn.dataset.close).classList.remove('show');
+});
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(2) + ' MB';
+}
+
+function tryLoadFromHash() {
+  if (!location.hash) return;
+  try {
+    const code = decodeURIComponent(location.hash.slice(1));
+    if (code.startsWith(CODE_PREFIX)) {
+      applyMapData(decodeMap(code));
+      setTimeout(() => showHint('✅', 'Mapa carregado do link!', 2500), 100);
+    }
+  } catch (e) { console.warn(e); }
+}
+
+/* ============================================================
+   SALVAR / CARREGAR
+============================================================ */
+function saveMap() {
+  const data = serializeMap();
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mapa.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const fileInput = document.createElement('input');
+fileInput.type = 'file';
+fileInput.accept = '.json';
+fileInput.style.display = 'none';
+document.body.appendChild(fileInput);
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      applyMapData(JSON.parse(ev.target.result));
+      pushHistory();
+    } catch (err) { alert('Arquivo inválido: ' + err.message); }
+  };
+  r.readAsText(f);
+  fileInput.value = '';
+});
+
+document.getElementById('btnSave').onclick = saveMap;
+document.getElementById('btnLoad').onclick = () => fileInput.click();
+document.getElementById('btnClear').onclick = () => {
+  if (confirm('Apagar tudo?')) { restore('[]'); pushHistory(); }
+};
+
+/* ============================================================
+   MENU DE FORMAS
+============================================================ */
+document.querySelectorAll('#shapeMenu .shape').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#shapeMenu .shape').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentShape = b.dataset.shape;
+    showHint('🧱', `Forma: ${b.textContent.trim().split('\n')[0].trim()}`);
+  };
+});
+
+const menu = document.getElementById('shapeMenu');
+const menuToggle = document.getElementById('menuToggle');
+menuToggle.onclick = () => menu.classList.toggle('collapsed');
+
+/* ============================================================
+   TOOLTIPS
+============================================================ */
+const tooltip = document.getElementById('tooltip');
+let tooltipTimer = null;
+
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => {
+      tooltip.innerHTML = el.dataset.tip;
+      tooltip.classList.add('show');
+      const r = el.getBoundingClientRect();
+      let x = r.left + r.width/2;
+      let y = r.bottom + 10;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+      tooltip.style.transform = 'translateX(-50%)';
+      requestAnimationFrame(() => {
+        const tr = tooltip.getBoundingClientRect();
+        if (tr.right > innerWidth - 10) tooltip.style.left = (innerWidth - tr.width/2 - 10) + 'px';
+        if (tr.left < 10) tooltip.style.left = (tr.width/2 + 10) + 'px';
+      });
+    }, 300);
+  });
+  el.addEventListener('mouseleave', () => {
+    clearTimeout(tooltipTimer);
+    tooltip.classList.remove('show');
+  });
+});
+
+/* ============================================================
+   HELP
+============================================================ */
+const helpBtn = document.getElementById('helpBtn');
+const helpModal = document.getElementById('helpModal');
+helpBtn.onclick = () => {
+  helpModal.classList.add('show');
+  helpBtn.classList.remove('pulse');
+};
+
+/* ============================================================
+   ATALHOS
+============================================================ */
+addEventListener('keydown', e => {
+  const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+  const anyModal = helpModal.classList.contains('show') || codeModal.classList.contains('show');
+
+  if (e.code === 'Escape' && anyModal) {
+    helpModal.classList.remove('show');
+    codeModal.classList.remove('show');
+    return;
+  }
+
+  if (e.ctrlKey && e.code === 'KeyZ' && !typing) { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey && e.code === 'KeyY' && !typing) { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey && e.code === 'KeyD' && !typing) { e.preventDefault(); duplicateSelected(); return; }
+  if (e.ctrlKey && e.code === 'KeyC' && !typing && !anyModal) { e.preventDefault(); copySelected(); return; }
+  if (e.ctrlKey && e.code === 'KeyV' && !typing && !anyModal) { e.preventDefault(); pasteClipboard(); return; }
+
+  if (typing) return;
+
+  switch (e.code) {
+    case 'Digit1': currentShape='box';      setShapeBtn('box'); break;
+    case 'Digit2': currentShape='sphere';   setShapeBtn('sphere'); break;
+    case 'Digit3': currentShape='triangle'; setShapeBtn('triangle'); break;
+    case 'Digit4': currentShape='cylinder'; setShapeBtn('cylinder'); break;
+    case 'Digit5': currentShape='cone';     setShapeBtn('cone'); break;
+    case 'Digit6': currentShape='wedge';    setShapeBtn('wedge'); break;
+    case 'KeyG': setTool('move'); break;
+    case 'KeyR': setTool('rotate'); break;
+    case 'KeyS': setTool('scale'); break;
+    case 'KeyC': setTool('color'); break;
+    case 'Tab': e.preventDefault(); menu.classList.toggle('collapsed'); break;
+    case 'KeyX': deleteSelected(); break;
+    case 'KeyD': duplicateSelected(); break;
+    case 'Delete': deleteSelected(); break;
+    case 'Escape': selectObject(null); break;
+    case 'F5': e.preventDefault(); saveMap(); break;
+    case 'F9': e.preventDefault(); fileInput.click(); break;
+  }
+});
+
+function setShapeBtn(shape) {
+  document.querySelectorAll('#shapeMenu .shape').forEach(b => {
+    b.classList.toggle('active', b.dataset.shape === shape);
+  });
+}
+
+/* ============================================================
+   LOOP
+============================================================ */
+const clock = new THREE.Clock();
+function animate() {
+  const d = clock.getDelta();
+  if (!op || op.type === 'maybe-create') updateCamera(d);
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+lastSnap = snapshot();
+tryLoadFromHash();
+</script>
+</body>
+</html>
