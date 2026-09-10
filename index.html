@@ -2,13 +2,12 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Mini Studio 3D — v3.2</title>
+<title>Mini Studio 3D — v3.3</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; overflow:hidden; background:#2b2f36; font-family: system-ui, Arial, sans-serif; }
   canvas { display:block; }
 
-  /* Cursores conforme ferramenta */
   body.tool-select canvas { cursor: default; }
   body.tool-move canvas   { cursor: grab; }
   body.tool-move.dragging canvas { cursor: grabbing; }
@@ -16,7 +15,7 @@
   body.tool-scale canvas  { cursor: nwse-resize; }
   body.tool-color canvas  { cursor: cell; }
 
-  /* ---------- TOPBAR ---------- */
+  /* ================= TOPBAR ================= */
   #topbar {
     position:fixed; top:10px; left:50%; transform:translateX(-50%);
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
@@ -37,13 +36,14 @@
     background:#5865f2; color:#fff;
     box-shadow: 0 0 0 3px rgba(88,101,242,0.3), 0 6px 16px rgba(88,101,242,0.5);
   }
+  .tool.danger { background:#7a2b2b; color:#fff; }
   .tool.danger:hover { background:#a13a3a; }
   .tool.hi { background:#3ba55d; color:#fff; }
   .tool.hi:hover { background:#4bc46d; }
   .tool.colorTool.active { background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #a259ff); }
   .divider { width:2px; background:#3a3f47; margin:4px 6px; align-self: stretch; border-radius:2px; }
 
-  /* ---------- MENU DE FORMAS ---------- */
+  /* ================= MENU DE FORMAS ================= */
   #shapeMenu {
     position:fixed; left:16px; top:50%; transform:translateY(-50%);
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
@@ -79,7 +79,7 @@
   .shape kbd { opacity:.4; margin-left:auto; font-size:11px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius:4px; }
   .shape.active kbd { opacity:.9; background: rgba(255,255,255,0.2); }
 
-  /* ---------- PALETA FLUTUANTE (cor rápida) ---------- */
+  /* ================= PALETA RÁPIDA ================= */
   #quickColor {
     position:fixed; z-index:150;
     background:rgba(30,32,38,0.98); backdrop-filter: blur(10px);
@@ -97,7 +97,7 @@
   }
   #quickColor .swatch:hover { transform: scale(1.15); border-color:#fff; }
 
-  /* ---------- BOLHA DE FEEDBACK (o que tá fazendo) ---------- */
+  /* ================= BOLHA DE FEEDBACK ================= */
   #hint {
     position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
     background:rgba(88,101,242,0.95); color:#fff;
@@ -112,7 +112,7 @@
   #hint.show { opacity:1; transform: translateX(-50%) translateY(0); }
   #hint .emoji { font-size: 20px; }
 
-  /* ---------- PAINEL DE PROPRIEDADES ---------- */
+  /* ================= PAINEL DE PROPRIEDADES ================= */
   #props {
     position:fixed; right:16px; top:80px; width:280px;
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
@@ -141,7 +141,6 @@
     padding:2px 8px; border-radius:10px; font-weight:700;
   }
 
-  /* Dica no topo do painel */
   #propsHint {
     background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(127,255,212,0.05));
     border-left: 3px solid #5865f2;
@@ -251,7 +250,7 @@
   .actionBtn.delete { background: #7a2b2b; }
   .actionBtn.delete:hover { background: #a13a3a; }
 
-  /* ---------- BOTTOM BAR ---------- */
+  /* ================= BOTTOM BAR ================= */
   #bottombar {
     position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
@@ -268,7 +267,7 @@
   }
   #bottombar .stat { color:#5865f2; font-weight:700; }
 
-  /* ---------- MENU DE CONTEXTO ---------- */
+  /* ================= MENU DE CONTEXTO ================= */
   #ctx {
     position:fixed; background:rgba(30,32,38,0.98); backdrop-filter: blur(10px);
     border:1px solid #3a3f47; border-radius:12px;
@@ -302,7 +301,7 @@
     border-radius: 4px; font-size: 11px;
   }
 
-  /* ---------- BOTÕES FLUTUANTES ---------- */
+  /* ================= BOTÕES FLUTUANTES ================= */
   #menuToggle {
     position:fixed; top:16px; left:16px; z-index:26;
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
@@ -330,7 +329,7 @@
     50% { box-shadow: 0 4px 30px rgba(88,101,242,1); }
   }
 
-  /* ---------- MODAIS ---------- */
+  /* ================= MODAIS ================= */
   .modal {
     position:fixed; inset:0; z-index:200;
     background: rgba(10,12,16,0.85); backdrop-filter: blur(6px);
@@ -367,6 +366,74 @@
   .modalClose:hover { background:#a13a3a; color:#fff; }
   .modalBody { padding: 24px 28px 32px; }
 
+  /* Modal de CONFIRMAÇÃO (limpar tudo) */
+  .confirmModal .modalBox {
+    max-width: 440px; text-align: center;
+    border: 2px solid #a13a3a;
+    box-shadow: 0 20px 60px rgba(161,58,58,0.4), 0 0 0 3px rgba(161,58,58,0.2);
+  }
+  .confirmModal .modalHeader {
+    background: linear-gradient(135deg, #7a2b2b, #a13a3a);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    justify-content: center;
+    padding: 22px 28px;
+  }
+  .confirmModal .modalHeader h1 {
+    background: none; -webkit-text-fill-color: #fff;
+    color: #fff; font-size: 20px;
+  }
+  .confirmModal .modalBody { padding: 28px; }
+  .confirmModal .warnIcon {
+    font-size: 64px; margin-bottom: 14px;
+    animation: shake 0.6s ease-in-out;
+  }
+  @keyframes shake {
+    0%,100% { transform: rotate(0deg); }
+    20% { transform: rotate(-12deg); }
+    40% { transform: rotate(12deg); }
+    60% { transform: rotate(-8deg); }
+    80% { transform: rotate(8deg); }
+  }
+  .confirmModal .warnTitle {
+    font-size: 20px; font-weight: 700; color: #fff;
+    margin-bottom: 10px;
+  }
+  .confirmModal .warnText {
+    font-size: 14px; color: #a8adb8; line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .confirmModal .warnText b { color: #ff8a8a; }
+  .confirmModal .warnCount {
+    display: inline-block; background: rgba(161,58,58,0.2);
+    border: 1px solid #a13a3a; color: #ff8a8a;
+    padding: 4px 12px; border-radius: 8px;
+    font-weight: 700; font-size: 13px; margin: 6px 0;
+  }
+  .confirmActions {
+    display: flex; gap: 10px;
+  }
+  .confirmActions button {
+    flex: 1; padding: 14px;
+    border-radius: 12px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all .15s;
+  }
+  .confirmActions .cancelBtn {
+    background: #3a3f47; color: #cfd2d8;
+  }
+  .confirmActions .cancelBtn:hover {
+    background: #4a4f57; color: #fff;
+  }
+  .confirmActions .confirmDeleteBtn {
+    background: #a13a3a; color: #fff;
+  }
+  .confirmActions .confirmDeleteBtn:hover {
+    background: #c94a4a; transform: scale(1.02);
+  }
+
+  /* ================= AJUDA ================= */
   .helpSection { margin-bottom: 28px; }
   .helpSection h2 {
     font-size: 18px; color:#7fffd4;
@@ -400,7 +467,6 @@
   }
   .tip b { color: #7fffd4; }
 
-  /* Big demo cards */
   .demoGrid {
     display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
     margin: 12px 0;
@@ -409,8 +475,7 @@
   .demoCard {
     padding: 18px; border-radius: 14px;
     background: #24272e; border: 2px solid #3a3f47;
-    text-align: center;
-    transition: all .2s;
+    text-align: center; transition: all .2s;
   }
   .demoCard:hover { border-color: #5865f2; transform: translateY(-2px); }
   .demoCard .bigEmoji { font-size: 42px; margin-bottom: 8px; }
@@ -493,9 +558,9 @@
     <span class="ico">📥</span> <span>Importar</span>
   </button>
   <div class="divider"></div>
-  <button class="tool" id="btnSave" data-tip="<b>💾 Salvar arquivo</b><br>Aperte <span class='key'>F5</span>."><span class="ico">💾</span></button>
-  <button class="tool" id="btnLoad" data-tip="<b>📂 Abrir arquivo</b><br>Aperte <span class='key'>F9</span>."><span class="ico">📂</span></button>
-  <button class="tool danger" id="btnClear" data-tip="<b>🧹 Limpar tudo</b>"><span class="ico">🧹</span></button>
+  <button class="tool danger" id="btnClear" data-tip="<b>🧹 Limpar tudo</b><br>Apaga TODOS os objetos do mapa. Vai pedir confirmação.">
+    <span class="ico">🧹</span> <span>Limpar</span>
+  </button>
 </div>
 
 <div id="props" class="hidden">
@@ -632,15 +697,11 @@
   <button data-action="del" class="danger">🗑️ Deletar <kbd>Del</kbd></button>
 </div>
 
-<!-- Paleta rápida (aparece ao clicar com Ctrl ou ferramenta Cor) -->
 <div id="quickColor"></div>
-
-<!-- Bolha de feedback (o que tá fazendo) -->
 <div id="hint"><span class="emoji"></span><span class="text"></span></div>
 
 <button id="helpBtn" class="pulse" title="Como usar?">?</button>
 
-<!-- Tooltip -->
 <div class="tooltip" id="tooltip"></div>
 
 <!-- ========== MODAL DE AJUDA ========== -->
@@ -676,7 +737,7 @@
       </div>
 
       <div class="helpSection">
-        <h2>🎨 As 5 ferramentas (com cor cada uma)</h2>
+        <h2>🎨 As 5 ferramentas</h2>
         <div class="grid2">
           <div class="card">
             <div class="key">🖱️</div>
@@ -684,7 +745,7 @@
           </div>
           <div class="card">
             <div class="key">✥</div>
-            <div class="desc"><b>Mover</b><small>Clica no bloco e arrasta. O bloco segue o mouse.</small></div>
+            <div class="desc"><b>Mover</b><small>Clica no bloco e arrasta.</small></div>
           </div>
           <div class="card">
             <div class="key">⟳</div>
@@ -702,35 +763,29 @@
       </div>
 
       <div class="helpSection">
-        <h2>🖱️ 3 jeitos de fazer cada coisa</h2>
-        <p>Você escolhe o que for mais fácil:</p>
+        <h2>💾 Salvar e compartilhar</h2>
+        <p>Agora tem <b>só 2 formas</b> de salvar (o resto foi removido pra simplificar):</p>
         <div class="grid2">
           <div class="card">
-            <div class="key">1</div>
-            <div class="desc"><b>Arrastando direto</b><small>O jeito mais natural — clica e arrasta</small></div>
+            <div class="key">📤</div>
+            <div class="desc"><b>Exportar código</b><small>Gera um texto tipo <code>MS3D:abc123...</code> que você copia e cola onde quiser</small></div>
           </div>
           <div class="card">
-            <div class="key">2</div>
-            <div class="desc"><b>Barra de ferramentas</b><small>Clica no botão e usa</small></div>
-          </div>
-          <div class="card">
-            <div class="key">3</div>
-            <div class="desc"><b>Painel da direita</b><small>Mexe nos números e sliders</small></div>
+            <div class="key">📥</div>
+            <div class="desc"><b>Importar código</b><small>Cola um código e o mapa aparece igualzinho</small></div>
           </div>
         </div>
         <div class="tip">
-          <b>Todos funcionam ao mesmo tempo!</b> Se você tá movendo pelo painel e não gostou,
-          pode arrastar direto no objeto que também funciona.
+          <b>Por que removi o salvar arquivo?</b> O código já faz o mesmo — e ainda dá pra mandar por WhatsApp, Discord, e-mail...
+          Se você salvar o código num bloco de notas, é a mesma coisa que salvar um arquivo. Mais simples!
         </div>
       </div>
 
       <div class="helpSection">
-        <h2>🎨 Pintar de 3 jeitos</h2>
-        <div class="grid2">
-          <div class="card"><div class="key">Ctrl+Clique</div><div class="desc"><b>Paleta rápida</b><small>Aparece do lado do mouse</small></div></div>
-          <div class="card"><div class="key">C</div><div class="desc"><b>Ferramenta Pintar</b><small>Ativa modo pincel</small></div></div>
-          <div class="card"><div class="key">🎨</div><div class="desc"><b>Painel roxo</b><small>Escolhe a cor lá</small></div></div>
-          <div class="card"><div class="key">Botão direito</div><div class="desc"><b>Menu rápido</b><small>Também tem "Cor aleatória"</small></div></div>
+        <h2>🧹 Limpar tudo</h2>
+        <p>O botão <b>🧹 Limpar</b> agora pede <b>confirmação</b> com um aviso grande antes de apagar. Assim ninguém perde o mapa sem querer.</p>
+        <div class="tip">
+          <b>E se eu apagar mesmo assim?</b> Aperta <kbd>Ctrl+Z</kbd> — o desfazer volta tudo!
         </div>
       </div>
 
@@ -750,21 +805,32 @@
         </div>
       </div>
 
-      <div class="helpSection">
-        <h2>📤 Compartilhar mapas</h2>
-        <ol style="padding-left: 20px; font-size: 14px; line-height: 2;">
-          <li>Clique em <b>📤 Exportar</b></li>
-          <li>Clique em <b>Copiar código</b></li>
-          <li>Mande pra alguém</li>
-          <li>A pessoa clica em <b>📥 Importar</b>, cola, e pronto!</li>
-        </ol>
-      </div>
-
     </div>
   </div>
 </div>
 
-<!-- Modal código -->
+<!-- ========== MODAL DE CONFIRMAÇÃO (Limpar tudo) ========== -->
+<div id="confirmClearModal" class="modal confirmModal">
+  <div class="modalBox">
+    <div class="modalHeader">
+      <h1>⚠️ Cuidado!</h1>
+    </div>
+    <div class="modalBody">
+      <div class="warnIcon">🗑️</div>
+      <div class="warnTitle">Apagar tudo?</div>
+      <div class="warnText">
+        Você vai apagar <b>todos os objetos</b> do mapa de uma vez. Essa ação pode ser desfeita com <b>Ctrl+Z</b>, mas é melhor ter certeza!
+      </div>
+      <div class="warnCount" id="clearCount">0 objetos no mapa</div>
+      <div class="confirmActions" style="margin-top: 24px;">
+        <button class="cancelBtn" id="btnCancelClear">✕ Cancelar</button>
+        <button class="confirmDeleteBtn" id="btnConfirmClear">🗑️ Sim, apagar tudo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL DE CÓDIGO ========== -->
 <div id="codeModal" class="modal">
   <div class="modalBox" style="max-width:720px;">
     <div class="modalHeader">
@@ -964,7 +1030,7 @@ function createObject(shape, pos, color = 0xa0a4ab, rotation, scale) {
   if (scale) mesh.scale.set(scale[0], scale[1], scale[2]);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  mesh.userData = { isObject: true, shape, id: ++objId, baseEmissive: 0x000000 };
+  mesh.userData = { isObject: true, shape, id: ++objId };
   objectsGroup.add(mesh);
   updateCount();
   return mesh;
@@ -991,7 +1057,6 @@ function setOutline(mesh, on) {
   }
 }
 
-// Contorno de seleção (box helper)
 let selectionBox = null;
 function updateSelectionBox() {
   if (selectionBox) { scene.remove(selectionBox); selectionBox.geometry.dispose(); selectionBox = null; }
@@ -1016,7 +1081,7 @@ function selectObject(mesh) {
 }
 
 /* ============================================================
-   HINT (bolha de feedback)
+   HINT
 ============================================================ */
 const hintEl = document.getElementById('hint');
 let hintTimer = null;
@@ -1026,6 +1091,10 @@ function showHint(emoji, text, duration = 1800) {
   hintEl.classList.add('show');
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => hintEl.classList.remove('show'), duration);
+}
+function hideHint() {
+  hintEl.classList.remove('show');
+  clearTimeout(hintTimer);
 }
 
 /* ============================================================
@@ -1055,11 +1124,7 @@ document.querySelectorAll('#topbar .tool[data-tool]').forEach(b => {
 });
 
 /* ============================================================
-   MANIPULAÇÃO DIRETA (a estrela do show)
-   ------------------------------------------------------------
-   - pointerdown no objeto → começa operação
-   - pointermove → aplica mudança
-   - pointerup → finaliza
+   MANIPULAÇÃO DIRETA
 ============================================================ */
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -1083,34 +1148,21 @@ function hitGround(e) {
   return hits[0] || null;
 }
 
-// Estado da operação atual
-let op = null;  // { type, obj, start, data }
-
-// Plano de movimento (segue a câmera, no eixo Y do objeto) pra arrastar no plano horizontal
+let op = null;
 const movePlane = new THREE.Plane();
 const moveHitPoint = new THREE.Vector3();
 
 renderer.domElement.addEventListener('pointerdown', e => {
-  // Botão direito = girar câmera
-  if (e.button === 2) {
-    isRotatingCam = true;
-    return;
-  }
-  if (e.button !== 0) return;      // só botão esquerdo manipula
-  if (e.altKey) { isRotatingCam = true; return; }  // alt = câmera
+  if (e.button === 2) { isRotatingCam = true; return; }
+  if (e.button !== 0) return;
+  if (e.altKey) { isRotatingCam = true; return; }
 
   const hit = hitAt(e);
 
-  // Se não tem objeto e a ferramenta é "color" → nada
-  // Se clicou no chão e ferramenta é "select" → cria objeto novo
-  // Se clicou em objeto → começa operação
-
   if (!hit) {
-    // Sem objeto → talvez criar
     if (currentTool === 'select') {
       const g = hitGround(e);
       if (g) {
-        // guarda pra criar no pointerup (se não arrastou)
         op = {
           type: 'maybe-create',
           startX: e.clientX, startY: e.clientY,
@@ -1122,22 +1174,18 @@ renderer.domElement.addEventListener('pointerdown', e => {
     return;
   }
 
-  // Clicou em objeto
   const obj = hit.object;
   selectObject(obj);
 
-  // Pintar = só abre paleta, não arrasta
   if (currentTool === 'color') {
     openQuickColor(e.clientX, e.clientY, obj);
     op = null;
     return;
   }
 
-  // Inicia operação de manipulação
   const tool = currentTool === 'select' ? 'move' : currentTool;
 
   if (tool === 'move') {
-    // Plano perpendicular à câmera, passando pelo objeto
     const camDir = new THREE.Vector3();
     camera.getWorldDirection(camDir);
     const objPos = new THREE.Vector3();
@@ -1181,12 +1229,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
 });
 
 addEventListener('pointermove', e => {
-  // Atualiza cursor e highlight (hover)
-  if (!op) {
-    const hit = hitAt(e);
-    // (não faz hover highlight pra não confundir; só cursor do CSS)
-    return;
-  }
+  if (!op) return;
 
   const dx = e.clientX - op.startX;
   const dy = e.clientY - op.startY;
@@ -1195,7 +1238,6 @@ addEventListener('pointermove', e => {
   if (op.type === 'maybe-create') return;
 
   if (op.type === 'move') {
-    // Projeta o mouse no plano e usa o delta
     ndcFrom(e);
     raycaster.setFromCamera(ndc, camera);
     if (raycaster.ray.intersectPlane(movePlane, moveHitPoint)) {
@@ -1206,19 +1248,16 @@ addEventListener('pointermove', e => {
     }
   }
   else if (op.type === 'rotate') {
-    // Rotação: X horizontal = gira Y, Y vertical = gira X
     op.obj.rotation.y = op.startRotY + dx * 0.01;
     op.obj.rotation.x = op.startRotX + dy * 0.01;
     updateSelectionBox();
     refreshProps();
   }
   else if (op.type === 'scale') {
-    // Distância do centro pra fora = aumenta
     const dist = Math.hypot(dx, dy);
-    const sign = (dx + dy) > 0 ? 1 : -1;  // direção
+    const sign = (dx + dy) > 0 ? 1 : -1;
     const factor = 1 + (sign * dist * 0.005);
-    const newScale = op.startScale.clone().multiplyScalar(Math.max(0.1, factor));
-    op.obj.scale.copy(newScale);
+    op.obj.scale.copy(op.startScale.clone().multiplyScalar(Math.max(0.1, factor)));
     updateSelectionBox();
     refreshProps();
   }
@@ -1244,7 +1283,6 @@ addEventListener('pointerup', e => {
   }
 
   if (wasMaybeCreate && !moved) {
-    // Criar objeto novo
     if (point) {
       const pt = point.clone();
       pt.x = Math.round(pt.x * 2) / 2;
@@ -1264,13 +1302,8 @@ addEventListener('pointercancel', () => {
   document.body.classList.remove('dragging');
 });
 
-function hideHint() {
-  hintEl.classList.remove('show');
-  clearTimeout(hintTimer);
-}
-
 /* ============================================================
-   ROTAÇÃO DE CÂMERA (botão direito / Alt+clique)
+   ROTAÇÃO DE CÂMERA
 ============================================================ */
 addEventListener('pointermove', e => {
   if (isRotatingCam) {
@@ -1281,7 +1314,7 @@ addEventListener('pointermove', e => {
 });
 
 /* ============================================================
-   PALETA RÁPIDA DE COR
+   PALETA RÁPIDA
 ============================================================ */
 const quickColor = document.getElementById('quickColor');
 const QUICK_COLORS = [
@@ -1670,6 +1703,7 @@ function base64urlToBytes(str) {
    MODAIS
 ============================================================ */
 const codeModal = document.getElementById('codeModal');
+const confirmClearModal = document.getElementById('confirmClearModal');
 const codeModalTitle = document.getElementById('codeModalTitle');
 const codeExportView = document.getElementById('codeExportView');
 const codeImportView = document.getElementById('codeImportView');
@@ -1766,8 +1800,14 @@ document.getElementById('btnCloseImport').onclick = () => codeModal.classList.re
 document.querySelectorAll('.modalClose').forEach(btn => {
   btn.onclick = () => document.getElementById(btn.dataset.close).classList.remove('show');
 });
+
+// Fechar modais clicando fora (exceto o de confirmação, que precisa ser explícito)
 document.querySelectorAll('.modal').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+  m.addEventListener('click', e => {
+    if (e.target === m && m.id !== 'confirmClearModal') {
+      m.classList.remove('show');
+    }
+  });
 });
 
 function formatBytes(b) {
@@ -1788,42 +1828,31 @@ function tryLoadFromHash() {
 }
 
 /* ============================================================
-   SALVAR / CARREGAR
+   LIMPAR TUDO (com confirmação)
 ============================================================ */
-function saveMap() {
-  const data = serializeMap();
-  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'mapa.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
+const btnClear = document.getElementById('btnClear');
 
-const fileInput = document.createElement('input');
-fileInput.type = 'file';
-fileInput.accept = '.json';
-fileInput.style.display = 'none';
-document.body.appendChild(fileInput);
-fileInput.addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    try {
-      applyMapData(JSON.parse(ev.target.result));
-      pushHistory();
-    } catch (err) { alert('Arquivo inválido: ' + err.message); }
-  };
-  r.readAsText(f);
-  fileInput.value = '';
-});
+btnClear.onclick = () => {
+  const count = objectsGroup.children.length;
+  if (count === 0) {
+    showHint('💭', 'O mapa já tá vazio!', 2000);
+    return;
+  }
+  document.getElementById('clearCount').textContent =
+    count === 1 ? '1 objeto no mapa' : `${count} objetos no mapa`;
+  confirmClearModal.classList.add('show');
+};
 
-document.getElementById('btnSave').onclick = saveMap;
-document.getElementById('btnLoad').onclick = () => fileInput.click();
-document.getElementById('btnClear').onclick = () => {
-  if (confirm('Apagar tudo?')) { restore('[]'); pushHistory(); }
+document.getElementById('btnCancelClear').onclick = () => {
+  confirmClearModal.classList.remove('show');
+};
+
+document.getElementById('btnConfirmClear').onclick = () => {
+  restore('[]');
+  pushHistory();
+  updateCount();
+  confirmClearModal.classList.remove('show');
+  showHint('🧹', 'Tudo apagado! Ctrl+Z pra voltar', 2500);
 };
 
 /* ============================================================
@@ -1888,11 +1917,18 @@ helpBtn.onclick = () => {
 ============================================================ */
 addEventListener('keydown', e => {
   const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
-  const anyModal = helpModal.classList.contains('show') || codeModal.classList.contains('show');
+  const anyModal = helpModal.classList.contains('show') ||
+                   codeModal.classList.contains('show') ||
+                   confirmClearModal.classList.contains('show');
 
+  // Esc fecha modais (menos o de confirmação — esse é proposital ter que clicar)
   if (e.code === 'Escape' && anyModal) {
-    helpModal.classList.remove('show');
-    codeModal.classList.remove('show');
+    if (confirmClearModal.classList.contains('show')) {
+      confirmClearModal.classList.remove('show');
+    } else {
+      helpModal.classList.remove('show');
+      codeModal.classList.remove('show');
+    }
     return;
   }
 
@@ -1902,7 +1938,7 @@ addEventListener('keydown', e => {
   if (e.ctrlKey && e.code === 'KeyC' && !typing && !anyModal) { e.preventDefault(); copySelected(); return; }
   if (e.ctrlKey && e.code === 'KeyV' && !typing && !anyModal) { e.preventDefault(); pasteClipboard(); return; }
 
-  if (typing) return;
+  if (typing || anyModal) return;
 
   switch (e.code) {
     case 'Digit1': currentShape='box';      setShapeBtn('box'); break;
@@ -1920,8 +1956,6 @@ addEventListener('keydown', e => {
     case 'KeyD': duplicateSelected(); break;
     case 'Delete': deleteSelected(); break;
     case 'Escape': selectObject(null); break;
-    case 'F5': e.preventDefault(); saveMap(); break;
-    case 'F9': e.preventDefault(); fileInput.click(); break;
   }
 });
 
