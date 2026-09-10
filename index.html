@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Mini Studio 3D — v3.3</title>
+<title>Mini Studio 3D — v4.1 (fixes)</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; overflow:hidden; background:#2b2f36; font-family: system-ui, Arial, sans-serif; }
@@ -40,6 +40,8 @@
   .tool.danger:hover { background:#a13a3a; }
   .tool.hi { background:#3ba55d; color:#fff; }
   .tool.hi:hover { background:#4bc46d; }
+  .tool.purple { background:#7c3aed; color:#fff; }
+  .tool.purple:hover { background:#9333ea; }
   .tool.colorTool.active { background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #a259ff); }
   .divider { width:2px; background:#3a3f47; margin:4px 6px; align-self: stretch; border-radius:2px; }
 
@@ -52,6 +54,7 @@
     box-shadow:0 6px 24px rgba(0,0,0,0.5);
     transition: opacity .2s, transform .2s;
     max-width: 230px;
+    max-height: calc(100vh - 120px); overflow-y:auto;
   }
   #shapeMenu.collapsed { opacity:0; pointer-events:none; transform:translate(-120%, -50%); }
   #shapeMenu .title {
@@ -79,6 +82,72 @@
   .shape kbd { opacity:.4; margin-left:auto; font-size:11px; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius:4px; }
   .shape.active kbd { opacity:.9; background: rgba(255,255,255,0.2); }
 
+  /* ================= ÁRVORE DE PEÇAS ================= */
+  #partTree {
+    position:fixed; left:16px; top:50%; transform:translateY(-50%);
+    background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
+    border:1px solid #3a3f47; border-radius:16px;
+    padding:10px; z-index:25; width: 260px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5);
+    max-height: calc(100vh - 120px); overflow-y:auto;
+    display: none;
+  }
+  #partTree.show { display: block; }
+  #partTree .title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #8a8f98; padding: 4px 6px 8px; font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #partTree .title .count {
+    background: #5865f2; color: #fff; font-size: 10px;
+    padding: 2px 8px; border-radius: 8px; letter-spacing: 0;
+  }
+  .partItem {
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px; border-radius:8px; cursor:pointer;
+    color:#cfd2d8; font-size:13px; margin-bottom:2px;
+    transition: all .12s;
+    border: 2px solid transparent;
+  }
+  .partItem:hover { background: rgba(255,255,255,0.05); }
+  .partItem.active { background: #5865f2; color: #fff; border-color: #4f5bd5; }
+  .partItem .indent { color: #555a63; font-family: monospace; font-size: 11px; user-select: none; }
+  .partItem.active .indent { color: rgba(255,255,255,0.5); }
+  .partItem .pColor {
+    width: 14px; height: 14px; border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.3); flex-shrink: 0;
+  }
+  .partItem .pName { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .partItem .pShape { font-size: 10px; opacity: 0.6; }
+  #partTree .empty {
+    padding: 20px 10px; text-align: center;
+    color: #555a63; font-size: 12px; font-style: italic;
+  }
+
+  /* ================= ESTÚDIO OVERLAY ================= */
+  #studioBar {
+    position:fixed; top:10px; left:50%; transform:translateX(-50%);
+    background: linear-gradient(90deg, #7c3aed, #9333ea);
+    border:1px solid #a78bfa; border-radius:16px;
+    padding: 8px; display:none; gap:6px; z-index:30;
+    box-shadow:0 6px 24px rgba(124,58,237,0.5);
+    align-items: center;
+  }
+  #studioBar.show { display: flex; }
+  #studioBar .studioTitle {
+    color:#fff; font-weight:700; font-size:14px;
+    padding: 0 10px; display:flex; align-items:center; gap:8px;
+  }
+  #studioBar .tool {
+    background: rgba(255,255,255,0.15);
+  }
+  #studioBar .tool:hover { background: rgba(255,255,255,0.3); }
+  #studioBar .tool.active {
+    background: #fff; color:#7c3aed;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+  }
+  #studioBar .divider { background: rgba(255,255,255,0.25); }
+
   /* ================= PALETA RÁPIDA ================= */
   #quickColor {
     position:fixed; z-index:150;
@@ -97,7 +166,7 @@
   }
   #quickColor .swatch:hover { transform: scale(1.15); border-color:#fff; }
 
-  /* ================= BOLHA DE FEEDBACK ================= */
+  /* ================= HINT ================= */
   #hint {
     position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
     background:rgba(88,101,242,0.95); color:#fff;
@@ -112,9 +181,9 @@
   #hint.show { opacity:1; transform: translateX(-50%) translateY(0); }
   #hint .emoji { font-size: 20px; }
 
-  /* ================= PAINEL DE PROPRIEDADES ================= */
+  /* ================= PAINEL ================= */
   #props {
-    position:fixed; right:16px; top:80px; width:280px;
+    position:fixed; right:16px; top:80px; width:300px;
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
     border:1px solid #3a3f47; border-radius:16px;
     padding:14px; z-index:25; color:#cfd2d8; font-size:13px;
@@ -140,6 +209,26 @@
     background:#5865f2; color:#fff; font-size:10px;
     padding:2px 8px; border-radius:10px; font-weight:700;
   }
+
+  .propSection.part { border-color: #a259ff; background: linear-gradient(135deg, rgba(162,89,255,0.1), rgba(162,89,255,0.02)); }
+  .propSection.part .propHeader { color: #a259ff; }
+  .partField {
+    display: flex; flex-direction: column; gap: 4px;
+    margin-bottom: 10px;
+  }
+  .partField:last-child { margin-bottom: 0; }
+  .partField label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 1px; color: #8a8f98; font-weight: 700;
+  }
+  .partField input[type=text], .partField select {
+    width: 100%; background:#1e2026; border:1px solid #3a3f47; color:#fff;
+    padding: 8px 10px; border-radius: 8px; font-size: 13px;
+    outline: none; transition: border-color .15s;
+    font-family: inherit;
+  }
+  .partField input[type=text]:focus, .partField select:focus { border-color: #a259ff; }
+  .partField select { cursor: pointer; }
 
   #propsHint {
     background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(127,255,212,0.05));
@@ -267,7 +356,7 @@
   }
   #bottombar .stat { color:#5865f2; font-weight:700; }
 
-  /* ================= MENU DE CONTEXTO ================= */
+  /* ================= CTX ================= */
   #ctx {
     position:fixed; background:rgba(30,32,38,0.98); backdrop-filter: blur(10px);
     border:1px solid #3a3f47; border-radius:12px;
@@ -301,7 +390,7 @@
     border-radius: 4px; font-size: 11px;
   }
 
-  /* ================= BOTÕES FLUTUANTES ================= */
+  /* ================= FLOAT BTNS ================= */
   #menuToggle {
     position:fixed; top:16px; left:16px; z-index:26;
     background:rgba(30,32,38,0.94); backdrop-filter: blur(10px);
@@ -366,7 +455,6 @@
   .modalClose:hover { background:#a13a3a; color:#fff; }
   .modalBody { padding: 24px 28px 32px; }
 
-  /* Modal de CONFIRMAÇÃO (limpar tudo) */
   .confirmModal .modalBox {
     max-width: 440px; text-align: center;
     border: 2px solid #a13a3a;
@@ -420,18 +508,10 @@
     display: flex; align-items: center; justify-content: center; gap: 8px;
     transition: all .15s;
   }
-  .confirmActions .cancelBtn {
-    background: #3a3f47; color: #cfd2d8;
-  }
-  .confirmActions .cancelBtn:hover {
-    background: #4a4f57; color: #fff;
-  }
-  .confirmActions .confirmDeleteBtn {
-    background: #a13a3a; color: #fff;
-  }
-  .confirmActions .confirmDeleteBtn:hover {
-    background: #c94a4a; transform: scale(1.02);
-  }
+  .confirmActions .cancelBtn { background: #3a3f47; color: #cfd2d8; }
+  .confirmActions .cancelBtn:hover { background: #4a4f57; color: #fff; }
+  .confirmActions .confirmDeleteBtn { background: #a13a3a; color: #fff; }
+  .confirmActions .confirmDeleteBtn:hover { background: #c94a4a; transform: scale(1.02); }
 
   /* ================= AJUDA ================= */
   .helpSection { margin-bottom: 28px; }
@@ -446,7 +526,6 @@
     border-radius: 12px; padding: 14px 18px; margin: 10px 0;
     display: flex; align-items: center; gap: 14px;
   }
-  .card:hover { border-color:#5865f2; }
   .card .key {
     background: #1e2026; border: 1px solid #4a4f57;
     border-bottom-width: 3px; border-radius: 8px;
@@ -466,23 +545,12 @@
     margin: 12px 0; font-size: 13px; color: #cfd2d8; line-height: 1.6;
   }
   .tip b { color: #7fffd4; }
-
-  .demoGrid {
-    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
-    margin: 12px 0;
+  .tip.purple {
+    background: linear-gradient(135deg, rgba(124,58,237,0.15), rgba(162,89,255,0.08));
+    border-left-color: #7c3aed;
   }
-  @media (max-width: 700px) { .demoGrid { grid-template-columns: 1fr; } }
-  .demoCard {
-    padding: 18px; border-radius: 14px;
-    background: #24272e; border: 2px solid #3a3f47;
-    text-align: center; transition: all .2s;
-  }
-  .demoCard:hover { border-color: #5865f2; transform: translateY(-2px); }
-  .demoCard .bigEmoji { font-size: 42px; margin-bottom: 8px; }
-  .demoCard .bigTitle { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; }
-  .demoCard .bigDesc { font-size: 12px; color: #8a8f98; line-height: 1.5; }
+  .tip.purple b { color: #c4b5fd; }
 
-  /* Tooltip */
   .tooltip {
     position: fixed; background: #1a1c20;
     color: #fff; padding: 10px 14px; border-radius: 10px;
@@ -507,59 +575,112 @@
 
 <div id="shapeMenu">
   <div class="title">🧱 Escolha a forma</div>
-  <button class="shape active" data-shape="box" data-tip="<b>Cubo</b><br>Pra paredes, chão, casas, caixas.">
+  <button class="shape active" data-shape="box" data-tip="<b>Cubo</b>">
     <span class="ico ico-box"></span> Cubo <kbd>1</kbd>
   </button>
-  <button class="shape" data-shape="sphere" data-tip="<b>Esfera</b><br>Pra bolas, planetas, cabeças.">
+  <button class="shape" data-shape="sphere" data-tip="<b>Esfera</b>">
     <span class="ico ico-sphere"></span> Esfera <kbd>2</kbd>
   </button>
-  <button class="shape" data-shape="triangle" data-tip="<b>Triângulo</b><br>Pra pirâmides, telhados.">
+  <button class="shape" data-shape="triangle" data-tip="<b>Triângulo</b>">
     <span class="ico ico-triangle"></span> Triângulo <kbd>3</kbd>
   </button>
-  <button class="shape" data-shape="cylinder" data-tip="<b>Cilindro</b><br>Pra torres, troncos, canos.">
+  <button class="shape" data-shape="cylinder" data-tip="<b>Cilindro</b>">
     <span class="ico ico-cylinder"></span> Cilindro <kbd>4</kbd>
   </button>
-  <button class="shape" data-shape="cone" data-tip="<b>Cone</b><br>Pra tetos pontudos, árvores.">
+  <button class="shape" data-shape="cone" data-tip="<b>Cone</b>">
     <span class="ico ico-cone"></span> Cone <kbd>5</kbd>
   </button>
-  <button class="shape" data-shape="wedge" data-tip="<b>Rampa</b><br>Pra escadas, telhados inclinados.">
+  <button class="shape" data-shape="wedge" data-tip="<b>Rampa</b>">
     <span class="ico ico-wedge"></span> Rampa <kbd>6</kbd>
   </button>
 </div>
 
+<div id="partTree">
+  <div class="title">
+    <span>🦴 Peças da criatura</span>
+    <span class="count" id="partCount">0</span>
+  </div>
+  <div id="partTreeList"></div>
+</div>
+
 <div id="topbar">
-  <button class="tool active" data-tool="select" data-tip="<b>🖱️ Selecionar</b><br>Clique num objeto. Depois arraste pra <b>mover direto</b>!">
+  <button class="tool active" data-tool="select" data-tip="<b>🖱️ Selecionar</b><br>Clique num objeto. Depois arraste pra mover.">
     <span class="ico">🖱️</span> <span>Selecionar</span>
   </button>
-  <button class="tool" data-tool="move" data-tip="<b>✥ Mover</b><br>Arraste o objeto pra qualquer lugar. Aperte <span class='key'>G</span>.">
+  <button class="tool" data-tool="move" data-tip="<b>✥ Mover</b>">
     <span class="ico">✥</span> <span>Mover</span>
   </button>
-  <button class="tool" data-tool="rotate" data-tip="<b>⟳ Girar</b><br>Arraste em círculo pra girar. Aperte <span class='key'>R</span>.">
+  <button class="tool" data-tool="rotate" data-tip="<b>⟳ Girar</b>">
     <span class="ico">⟳</span> <span>Girar</span>
   </button>
-  <button class="tool" data-tool="scale" data-tip="<b>⤢ Tamanho</b><br>Arraste pra fora = aumenta. Pra dentro = diminui. Aperte <span class='key'>S</span>.">
+  <button class="tool" data-tool="scale" data-tip="<b>⤢ Tamanho</b>">
     <span class="ico">⤢</span> <span>Tamanho</span>
   </button>
-  <button class="tool colorTool" data-tool="color" data-tip="<b>🎨 Pintar</b><br>Clique num objeto e a paleta aparece. Aperte <span class='key'>C</span>.">
+  <button class="tool colorTool" data-tool="color" data-tip="<b>🎨 Pintar</b>">
     <span class="ico">🎨</span> <span>Pintar</span>
   </button>
   <div class="divider"></div>
-  <button class="tool" id="btnUndo" data-tip="<b>↶ Desfazer</b><br>Aperte <span class='key'>Ctrl</span>+<span class='key'>Z</span>.">
+  <button class="tool" id="btnUndo" data-tip="<b>↶ Desfazer</b>">
     <span class="ico">↶</span>
   </button>
-  <button class="tool" id="btnRedo" data-tip="<b>↷ Refazer</b><br>Aperte <span class='key'>Ctrl</span>+<span class='key'>Y</span>.">
+  <button class="tool" id="btnRedo" data-tip="<b>↷ Refazer</b>">
     <span class="ico">↷</span>
   </button>
   <div class="divider"></div>
-  <button class="tool hi" id="btnExport" data-tip="<b>📤 Exportar</b><br>Gera um código pra mandar o mapa.">
+  <button class="tool purple" id="btnOpenStudio" data-tip="<b>🐴 Criar Criatura</b><br>Entra no estúdio pra criar bixos.">
+    <span class="ico">🐴</span> <span>Criar Criatura</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool hi" id="btnExport" data-tip="<b>📤 Exportar mapa</b>">
     <span class="ico">📤</span> <span>Exportar</span>
   </button>
-  <button class="tool hi" id="btnImport" data-tip="<b>📥 Importar</b><br>Cole um código pra carregar um mapa.">
+  <button class="tool hi" id="btnImport" data-tip="<b>📥 Importar mapa</b>">
     <span class="ico">📥</span> <span>Importar</span>
   </button>
   <div class="divider"></div>
-  <button class="tool danger" id="btnClear" data-tip="<b>🧹 Limpar tudo</b><br>Apaga TODOS os objetos do mapa. Vai pedir confirmação.">
+  <button class="tool danger" id="btnClear" data-tip="<b>🧹 Limpar tudo</b>">
     <span class="ico">🧹</span> <span>Limpar</span>
+  </button>
+</div>
+
+<div id="studioBar">
+  <div class="studioTitle">🐴 Estúdio de Criaturas</div>
+  <button class="tool" id="btnBackToMap" data-tip="<b>← Voltar pro mapa</b>">
+    <span class="ico">←</span> <span>Mapa</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool active" data-tool="select" data-tip="<b>🖱️ Selecionar</b>">
+    <span class="ico">🖱️</span>
+  </button>
+  <button class="tool" data-tool="move" data-tip="<b>✥ Mover</b>">
+    <span class="ico">✥</span>
+  </button>
+  <button class="tool" data-tool="rotate" data-tip="<b>⟳ Girar</b>">
+    <span class="ico">⟳</span>
+  </button>
+  <button class="tool" data-tool="scale" data-tip="<b>⤢ Tamanho</b>">
+    <span class="ico">⤢</span>
+  </button>
+  <button class="tool colorTool" data-tool="color" data-tip="<b>🎨 Pintar</b>">
+    <span class="ico">🎨</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool" id="btnStudioUndo" data-tip="<b>↶ Desfazer</b>">
+    <span class="ico">↶</span>
+  </button>
+  <button class="tool" id="btnStudioRedo" data-tip="<b>↷ Refazer</b>">
+    <span class="ico">↷</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool hi" id="btnExportCreature" data-tip="<b>📤 Exportar criatura</b>">
+    <span class="ico">📤</span> <span>Exportar</span>
+  </button>
+  <button class="tool hi" id="btnImportCreature" data-tip="<b>📥 Importar criatura</b>">
+    <span class="ico">📥</span> <span>Importar</span>
+  </button>
+  <div class="divider"></div>
+  <button class="tool danger" id="btnClearCreature" data-tip="<b>🧹 Limpar criatura</b>">
+    <span class="ico">🧹</span>
   </button>
 </div>
 
@@ -568,8 +689,22 @@
     <h4>✏️ Editando <span class="badgeId" id="propName">—</span></h4>
   </div>
 
+  <div class="propSection part" id="partSection" style="display:none;">
+    <div class="propHeader"><span class="ico">🦴</span><span>Identidade</span></div>
+    <div class="partField">
+      <label>Nome da peça</label>
+      <input type="text" id="partNameInput" maxlength="30" placeholder="ex: cabeça">
+    </div>
+    <div class="partField">
+      <label>Peça pai (opcional)</label>
+      <select id="partParentSelect">
+        <option value="">— Nenhuma (raiz) —</option>
+      </select>
+    </div>
+  </div>
+
   <div id="propsHint">
-    💡 <b>Dica:</b> arraste o objeto direto com o mouse! Também dá pra mexer aqui nos números.
+    💡 <b>Dica:</b> arraste o objeto direto com o mouse!
   </div>
 
   <div class="propSection pos">
@@ -643,7 +778,7 @@
     </div>
     <div class="sliderRow"><span class="lblAxis">Z</span><input type="range" data-s="sz" min="0.1" max="10" step="0.1"></div>
     <div class="actionRow" style="margin-top:12px;">
-      <button class="actionBtn" id="btnUniform" data-tip="Deixa X, Y e Z iguais (cubo perfeito).">📐 Tamanho igual</button>
+      <button class="actionBtn" id="btnUniform" data-tip="Deixa X, Y e Z iguais.">📐 Tamanho igual</button>
     </div>
   </div>
 
@@ -669,17 +804,17 @@
   </div>
 
   <div class="actionRow">
-    <button class="actionBtn" id="pDup" data-tip="Cria uma cópia do objeto.">⧉ Duplicar</button>
-    <button class="actionBtn delete" id="pDel" data-tip="Apaga o objeto.">🗑️ Apagar</button>
+    <button class="actionBtn" id="pDup" data-tip="Cria uma cópia.">⧉ Duplicar</button>
+    <button class="actionBtn delete" id="pDel" data-tip="Apaga.">🗑️ Apagar</button>
   </div>
 </div>
 
 <div id="bottombar">
   <span>Ferramenta: <span class="stat" id="statTool">Selecionar</span></span>
   <span>·</span>
-  <span>Objetos: <span class="stat" id="statCount">0</span></span>
+  <span id="statCountLabel">Objetos: <span class="stat" id="statCount">0</span></span>
   <span>·</span>
-  <span><kbd>WASD</kbd> mover câmera · <kbd>Botão direito</kbd> girar câmera</span>
+  <span><kbd>WASD</kbd> mover câmera · <kbd>Botão direito</kbd> girar</span>
 </div>
 
 <div id="ctx">
@@ -704,7 +839,7 @@
 
 <div class="tooltip" id="tooltip"></div>
 
-<!-- ========== MODAL DE AJUDA ========== -->
+<!-- AJUDA -->
 <div id="helpModal" class="modal">
   <div class="modalBox">
     <div class="modalHeader">
@@ -714,79 +849,25 @@
     <div class="modalBody">
 
       <div class="helpSection">
-        <h2>✨ O que mudou: agora é TUDO no arrastar</h2>
-        <p>Você não precisa mais ficar caçando botão. Agora funciona igual Instagram:</p>
-
-        <div class="demoGrid">
-          <div class="demoCard">
-            <div class="bigEmoji">✥</div>
-            <div class="bigTitle">Mover</div>
-            <div class="bigDesc">Clica no bloco e <b>arrasta</b> pra onde quiser</div>
-          </div>
-          <div class="demoCard">
-            <div class="bigEmoji">⟳</div>
-            <div class="bigTitle">Girar</div>
-            <div class="bigDesc">Aperta <b>R</b>, clica no bloco e <b>arrasta em círculo</b></div>
-          </div>
-          <div class="demoCard">
-            <div class="bigEmoji">⤢</div>
-            <div class="bigTitle">Tamanho</div>
-            <div class="bigDesc">Aperta <b>S</b>, clica e <b>arrasta pra fora</b> (aumenta) ou <b>pra dentro</b> (diminui)</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="helpSection">
-        <h2>🎨 As 5 ferramentas</h2>
+        <h2>✨ Arrastar direto</h2>
+        <p>Você não precisa caçar botão. Funciona igual Instagram:</p>
         <div class="grid2">
-          <div class="card">
-            <div class="key">🖱️</div>
-            <div class="desc"><b>Selecionar</b><small>Clica pra escolher um bloco. <b>E também pode arrastar direto</b> pra mover.</small></div>
-          </div>
-          <div class="card">
-            <div class="key">✥</div>
-            <div class="desc"><b>Mover</b><small>Clica no bloco e arrasta.</small></div>
-          </div>
-          <div class="card">
-            <div class="key">⟳</div>
-            <div class="desc"><b>Girar</b><small>Clica no bloco e gira o mouse em círculo.</small></div>
-          </div>
-          <div class="card">
-            <div class="key">⤢</div>
-            <div class="desc"><b>Tamanho</b><small>Arrasta pra fora = maior. Pra dentro = menor.</small></div>
-          </div>
-          <div class="card">
-            <div class="key">🎨</div>
-            <div class="desc"><b>Pintar</b><small>Clica no bloco e a paleta aparece do lado.</small></div>
-          </div>
+          <div class="card"><div class="key">✥</div><div class="desc"><b>Mover</b><small>Clica no bloco e arrasta</small></div></div>
+          <div class="card"><div class="key">⟳</div><div class="desc"><b>Girar</b><small>Aperta R e arrasta em círculo</small></div></div>
+          <div class="card"><div class="key">⤢</div><div class="desc"><b>Tamanho</b><small>Aperta S e arrasta</small></div></div>
+          <div class="card"><div class="key">🎨</div><div class="desc"><b>Pintar</b><small>Aperta C e clica</small></div></div>
         </div>
       </div>
 
       <div class="helpSection">
-        <h2>💾 Salvar e compartilhar</h2>
-        <p>Agora tem <b>só 2 formas</b> de salvar (o resto foi removido pra simplificar):</p>
-        <div class="grid2">
-          <div class="card">
-            <div class="key">📤</div>
-            <div class="desc"><b>Exportar código</b><small>Gera um texto tipo <code>MS3D:abc123...</code> que você copia e cola onde quiser</small></div>
-          </div>
-          <div class="card">
-            <div class="key">📥</div>
-            <div class="desc"><b>Importar código</b><small>Cola um código e o mapa aparece igualzinho</small></div>
-          </div>
-        </div>
-        <div class="tip">
-          <b>Por que removi o salvar arquivo?</b> O código já faz o mesmo — e ainda dá pra mandar por WhatsApp, Discord, e-mail...
-          Se você salvar o código num bloco de notas, é a mesma coisa que salvar um arquivo. Mais simples!
-        </div>
-      </div>
-
-      <div class="helpSection">
-        <h2>🧹 Limpar tudo</h2>
-        <p>O botão <b>🧹 Limpar</b> agora pede <b>confirmação</b> com um aviso grande antes de apagar. Assim ninguém perde o mapa sem querer.</p>
-        <div class="tip">
-          <b>E se eu apagar mesmo assim?</b> Aperta <kbd>Ctrl+Z</kbd> — o desfazer volta tudo!
-        </div>
+        <h2>🐴 Criador de Criatura</h2>
+        <ol style="padding-left: 20px; font-size: 14px; line-height: 2;">
+          <li>Clica em <b>🐴 Criar Criatura</b></li>
+          <li>Escolhe uma forma e clica no chão</li>
+          <li>Dá um <b>nome</b> pra peça (cabeça, tronco, perna_1...)</li>
+          <li>Escolhe um <b>pai</b> se quiser (quando mover o pai, o filho vai junto)</li>
+          <li>Exporta o código e manda pro amigo</li>
+        </ol>
       </div>
 
       <div class="helpSection">
@@ -797,11 +878,13 @@
           <div class="card"><div class="key">S</div><div class="desc"><b>Tamanho</b></div></div>
           <div class="card"><div class="key">C</div><div class="desc"><b>Pintar</b></div></div>
           <div class="card"><div class="key">Ctrl+Z</div><div class="desc"><b>Desfazer</b></div></div>
-          <div class="card"><div class="key">Ctrl+Y</div><div class="desc"><b>Refazer</b></div></div>
           <div class="card"><div class="key">Ctrl+D</div><div class="desc"><b>Duplicar</b></div></div>
           <div class="card"><div class="key">Del</div><div class="desc"><b>Deletar</b></div></div>
-          <div class="card"><div class="key">Esc</div><div class="desc"><b>Desselecionar</b></div></div>
           <div class="card"><div class="key">Tab</div><div class="desc"><b>Esconder menu</b></div></div>
+        </div>
+        <div class="tip">
+          <b>Quando estiver digitando</b> (nome de peça), os atalhos <b>desligam sozinhos</b>.
+          Pode escrever tranquilo! 😉
         </div>
       </div>
 
@@ -809,7 +892,7 @@
   </div>
 </div>
 
-<!-- ========== MODAL DE CONFIRMAÇÃO (Limpar tudo) ========== -->
+<!-- CONFIRMAÇÃO -->
 <div id="confirmClearModal" class="modal confirmModal">
   <div class="modalBox">
     <div class="modalHeader">
@@ -819,9 +902,9 @@
       <div class="warnIcon">🗑️</div>
       <div class="warnTitle">Apagar tudo?</div>
       <div class="warnText">
-        Você vai apagar <b>todos os objetos</b> do mapa de uma vez. Essa ação pode ser desfeita com <b>Ctrl+Z</b>, mas é melhor ter certeza!
+        Você vai apagar <b>todos os objetos</b>. Essa ação pode ser desfeita com <b>Ctrl+Z</b>.
       </div>
-      <div class="warnCount" id="clearCount">0 objetos no mapa</div>
+      <div class="warnCount" id="clearCount">0 objetos</div>
       <div class="confirmActions" style="margin-top: 24px;">
         <button class="cancelBtn" id="btnCancelClear">✕ Cancelar</button>
         <button class="confirmDeleteBtn" id="btnConfirmClear">🗑️ Sim, apagar tudo</button>
@@ -830,18 +913,18 @@
   </div>
 </div>
 
-<!-- ========== MODAL DE CÓDIGO ========== -->
+<!-- CÓDIGO -->
 <div id="codeModal" class="modal">
   <div class="modalBox" style="max-width:720px;">
     <div class="modalHeader">
-      <h1 id="codeModalTitle">📤 Exportar mapa</h1>
+      <h1 id="codeModalTitle">📤 Exportar</h1>
       <button class="modalClose" data-close="codeModal">✕</button>
     </div>
     <div class="modalBody">
 
       <div id="codeExportView">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#8a8f98;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
-          <span>Seu código do mapa</span>
+          <span>Seu código</span>
           <span id="codeLen" style="color:#5865f2;text-transform:none;letter-spacing:0;">— caracteres</span>
         </div>
         <textarea id="exportCode" readonly style="width:100%;background:#0f1115;border:1px solid #3a3f47;border-radius:12px;color:#7fffd4;padding:14px;font-family:'Courier New',monospace;font-size:12px;resize:vertical;min-height:120px;outline:none;word-break:break-all;"></textarea>
@@ -849,7 +932,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;">
           <div style="background:#24272e;border:1px solid #3a3f47;border-radius:10px;padding:12px;text-align:center;">
             <div style="font-size:22px;font-weight:700;color:#5865f2;" id="statBlocks">0</div>
-            <div style="font-size:11px;text-transform:uppercase;color:#8a8f98;">Blocos</div>
+            <div style="font-size:11px;text-transform:uppercase;color:#8a8f98;" id="statBlocksLabel">Blocos</div>
           </div>
           <div style="background:#24272e;border:1px solid #3a3f47;border-radius:10px;padding:12px;text-align:center;">
             <div style="font-size:22px;font-weight:700;color:#5865f2;" id="statSize">0 B</div>
@@ -866,10 +949,10 @@
 
       <div id="codeImportView" style="display:none">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:12px;color:#8a8f98;text-transform:uppercase;letter-spacing:1px;font-weight:700;">
-          <span>Cole o código do mapa</span>
+          <span>Cole o código</span>
           <span id="importLen" style="color:#5865f2;text-transform:none;letter-spacing:0;">— caracteres</span>
         </div>
-        <textarea id="importCode" placeholder="Cole aqui o código (começa com MS3D:...)" style="width:100%;background:#0f1115;border:1px solid #3a3f47;border-radius:12px;color:#7fffd4;padding:14px;font-family:'Courier New',monospace;font-size:12px;resize:vertical;min-height:120px;outline:none;word-break:break-all;"></textarea>
+        <textarea id="importCode" placeholder="Cole aqui o código..." style="width:100%;background:#0f1115;border:1px solid #3a3f47;border-radius:12px;color:#7fffd4;padding:14px;font-family:'Courier New',monospace;font-size:12px;resize:vertical;min-height:120px;outline:none;word-break:break-all;"></textarea>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
           <button class="actionBtn" style="background:#3ba55d;color:#fff;flex:1;min-width:140px;padding:12px;" id="btnDoImport">📥 Importar</button>
@@ -895,6 +978,23 @@
 <script type="module">
 import * as THREE from 'three';
 import * as pako from 'pako';
+
+/* ============================================================
+   HELPERS DE FOCO (fix do bug de digitação)
+============================================================ */
+function isTyping() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
+/* ============================================================
+   ESTADO
+============================================================ */
+let MODE = 'map';
 
 /* ============================================================
    CENA
@@ -949,8 +1049,10 @@ scene.add(grid);
    CÂMERA
 ============================================================ */
 const keys = {};
-addEventListener('keydown', e => keys[e.code] = true);
+addEventListener('keydown', e => { if (!isTyping()) keys[e.code] = true; });
 addEventListener('keyup',   e => keys[e.code] = false);
+// Limpa keys quando perde foco (evita "tecla presa")
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
 let isRotatingCam = false;
 let yaw = Math.PI / 4;
@@ -960,6 +1062,7 @@ const camPos = new THREE.Vector3(10, 10, 10);
 renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 
 function updateCamera(delta) {
+  if (isTyping()) return;
   const speed = keys['ShiftLeft'] || keys['ShiftRight'] ? 40 : 18;
   const fwd = new THREE.Vector3(
     Math.sin(yaw) * Math.cos(pitch),
@@ -981,6 +1084,7 @@ function updateCamera(delta) {
 }
 
 addEventListener('wheel', e => {
+  if (isTyping()) return;
   const fwd = new THREE.Vector3(
     Math.sin(yaw) * Math.cos(pitch),
     Math.sin(pitch),
@@ -1015,29 +1119,46 @@ function makeGeometry(shape) {
 }
 
 /* ============================================================
-   OBJETOS
+   GRUPOS
 ============================================================ */
-const objectsGroup = new THREE.Group();
-scene.add(objectsGroup);
+const mapGroup = new THREE.Group();
+const creatureGroup = new THREE.Group();
+scene.add(mapGroup);
+scene.add(creatureGroup);
+
+function currentGroup() { return MODE === 'map' ? mapGroup : creatureGroup; }
+function currentObjects() { return currentGroup().children; }
 
 let objId = 0;
-function createObject(shape, pos, color = 0xa0a4ab, rotation, scale) {
+function createObject(shape, pos, color = 0xa0a4ab, rotation, scale, opts = {}) {
   const geo = makeGeometry(shape);
   const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55, metalness: 0.08 });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(pos);
   if (rotation) mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
   if (scale) mesh.scale.set(scale[0], scale[1], scale[2]);
+
+  mesh.userData = {
+    isObject: true,
+    shape,
+    id: ++objId,
+    partName: opts.partName || '',
+    parentId: opts.parentId || null,
+  };
+
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  mesh.userData = { isObject: true, shape, id: ++objId };
-  objectsGroup.add(mesh);
+  currentGroup().add(mesh);
   updateCount();
   return mesh;
 }
 
 function updateCount() {
-  document.getElementById('statCount').textContent = objectsGroup.children.length;
+  const count = currentObjects().length;
+  document.getElementById('statCount').textContent = count;
+  if (MODE === 'studio') {
+    document.getElementById('partCount').textContent = count;
+  }
 }
 
 /* ============================================================
@@ -1078,6 +1199,7 @@ function selectObject(mesh) {
     scene.remove(selectionBox); selectionBox.geometry.dispose(); selectionBox = null;
   }
   refreshProps();
+  if (MODE === 'studio') renderPartTree();
 }
 
 /* ============================================================
@@ -1102,29 +1224,38 @@ function hideHint() {
 ============================================================ */
 let currentTool = 'select';
 const toolInfo = {
-  select: { emoji:'🖱️', name:'Selecionar', hint:['🖱️', 'Clique num bloco. Arraste pra mover.'] },
-  move:   { emoji:'✥', name:'Mover',   hint:['✥', 'Arraste o bloco pra onde quiser!'] },
-  rotate: { emoji:'⟳', name:'Girar',   hint:['⟳', 'Arraste em círculo pra girar.'] },
-  scale:  { emoji:'⤢', name:'Tamanho', hint:['⤢', 'Arraste pra fora (maior) ou dentro (menor).'] },
-  color:  { emoji:'🎨', name:'Pintar',  hint:['🎨', 'Clique num bloco pra abrir a paleta.'] },
+  select: { emoji:'🖱️', name:'Selecionar' },
+  move:   { emoji:'✥', name:'Mover' },
+  rotate: { emoji:'⟳', name:'Girar' },
+  scale:  { emoji:'⤢', name:'Tamanho' },
+  color:  { emoji:'🎨', name:'Pintar' },
 };
 
 function setTool(t, silent=false) {
   currentTool = t;
-  document.querySelectorAll('#topbar .tool[data-tool]').forEach(b => {
+  document.querySelectorAll('.tool[data-tool]').forEach(b => {
     b.classList.toggle('active', b.dataset.tool === t);
   });
   document.getElementById('statTool').textContent = toolInfo[t].name;
   document.body.className = 'tool-' + t;
-  if (!silent) showHint(toolInfo[t].hint[0], toolInfo[t].hint[1]);
+  if (!silent) {
+    const hints = {
+      select:['🖱️', 'Clique num bloco. Arraste pra mover.'],
+      move:['✥', 'Arraste o bloco pra onde quiser!'],
+      rotate:['⟳', 'Arraste em círculo pra girar.'],
+      scale:['⤢', 'Arraste pra fora (maior) ou dentro (menor).'],
+      color:['🎨', 'Clique num bloco pra abrir a paleta.'],
+    };
+    showHint(hints[t][0], hints[t][1]);
+  }
 }
 
-document.querySelectorAll('#topbar .tool[data-tool]').forEach(b => {
+document.querySelectorAll('.tool[data-tool]').forEach(b => {
   b.onclick = () => setTool(b.dataset.tool);
 });
 
 /* ============================================================
-   MANIPULAÇÃO DIRETA
+   MANIPULAÇÃO DIRETA (com fix do bug do rastro)
 ============================================================ */
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -1137,7 +1268,7 @@ function ndcFrom(e) {
 function hitAt(e) {
   ndcFrom(e);
   raycaster.setFromCamera(ndc, camera);
-  const hits = raycaster.intersectObjects(objectsGroup.children, false);
+  const hits = raycaster.intersectObjects(currentObjects(), false);
   return hits[0] || null;
 }
 
@@ -1149,13 +1280,27 @@ function hitGround(e) {
 }
 
 let op = null;
+let pointerIsDown = false;  // trava de segurança
 const movePlane = new THREE.Plane();
 const moveHitPoint = new THREE.Vector3();
 
+function forceRelease() {
+  op = null;
+  pointerIsDown = false;
+  isRotatingCam = false;
+  document.body.classList.remove('dragging');
+  hideHint();
+}
+
 renderer.domElement.addEventListener('pointerdown', e => {
+  if (isTyping()) return;
   if (e.button === 2) { isRotatingCam = true; return; }
   if (e.button !== 0) return;
   if (e.altKey) { isRotatingCam = true; return; }
+
+  // Trava: se já tem operação em andamento, cancela
+  if (pointerIsDown) forceRelease();
+  pointerIsDown = true;
 
   const hit = hitAt(e);
 
@@ -1207,8 +1352,9 @@ renderer.domElement.addEventListener('pointerdown', e => {
     op = {
       type: 'rotate',
       obj,
-      startRotY: obj.rotation.y,
       startRotX: obj.rotation.x,
+      startRotY: obj.rotation.y,
+      startZ: obj.rotation.z,
       startX: e.clientX, startY: e.clientY,
       moved: false,
     };
@@ -1229,6 +1375,13 @@ renderer.domElement.addEventListener('pointerdown', e => {
 });
 
 addEventListener('pointermove', e => {
+  if (isRotatingCam) {
+    yaw   -= e.movementX * 0.005;
+    pitch -= e.movementY * 0.005;
+    pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+    return;
+  }
+
   if (!op) return;
 
   const dx = e.clientX - op.startX;
@@ -1266,6 +1419,11 @@ addEventListener('pointermove', e => {
 addEventListener('pointerup', e => {
   if (e.button === 2) { isRotatingCam = false; return; }
   if (e.button === 0 && e.altKey) { isRotatingCam = false; return; }
+
+  // Libera a trava SEMPRE
+  pointerIsDown = false;
+  document.body.classList.remove('dragging');
+
   if (!op) return;
 
   const wasMaybeCreate = op.type === 'maybe-create';
@@ -1274,7 +1432,6 @@ addEventListener('pointerup', e => {
   const opType = op.type;
 
   op = null;
-  document.body.classList.remove('dragging');
 
   if (opType === 'move' || opType === 'rotate' || opType === 'scale') {
     hideHint();
@@ -1282,12 +1439,21 @@ addEventListener('pointerup', e => {
     return;
   }
 
-  if (wasMaybeCreate && !moved) {
-    if (point) {
-      const pt = point.clone();
-      pt.x = Math.round(pt.x * 2) / 2;
-      pt.z = Math.round(pt.z * 2) / 2;
-      pt.y = 0.5;
+  if (wasMaybeCreate && !moved && point) {
+    const pt = point.clone();
+    pt.x = Math.round(pt.x * 2) / 2;
+    pt.z = Math.round(pt.z * 2) / 2;
+    pt.y = 0.5;
+
+    if (MODE === 'studio') {
+      const count = currentObjects().length;
+      const defaultName = 'peça_' + (count + 1);
+      const obj = createObject(currentShape, pt, 0xa0a4ab, null, null, { partName: defaultName });
+      pushHistory();
+      selectObject(obj);
+      renderPartTree();
+      showHint('✨', `Peça criada: ${defaultName}`);
+    } else {
       const obj = createObject(currentShape, pt);
       pushHistory();
       selectObject(obj);
@@ -1296,22 +1462,19 @@ addEventListener('pointerup', e => {
   }
 });
 
-addEventListener('pointercancel', () => {
-  op = null;
-  isRotatingCam = false;
-  document.body.classList.remove('dragging');
-});
+addEventListener('pointercancel', forceRelease);
 
-/* ============================================================
-   ROTAÇÃO DE CÂMERA
-============================================================ */
-addEventListener('pointermove', e => {
-  if (isRotatingCam) {
-    yaw   -= e.movementX * 0.005;
-    pitch -= e.movementY * 0.005;
-    pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
+// Trava extra: se o mouse sair do canvas durante um clique, libera
+renderer.domElement.addEventListener('pointerleave', () => {
+  // Só libera se NÃO tiver operação ativa (senão atrapalha o drag)
+  if (!op && !isRotatingCam) {
+    pointerIsDown = false;
   }
 });
+
+// Segurança máxima: solta tudo quando a janela perde foco
+addEventListener('blur', forceRelease);
+document.addEventListener('visibilitychange', () => { if (document.hidden) forceRelease(); });
 
 /* ============================================================
    PALETA RÁPIDA
@@ -1356,11 +1519,25 @@ document.addEventListener('click', e => {
    PAINEL DE PROPRIEDADES
 ============================================================ */
 const propsEl = document.getElementById('props');
+const partSection = document.getElementById('partSection');
+const partNameInput = document.getElementById('partNameInput');
+const partParentSelect = document.getElementById('partParentSelect');
 
 function refreshProps() {
   if (!selected) { propsEl.classList.add('hidden'); return; }
   propsEl.classList.remove('hidden');
   document.getElementById('propName').textContent = '#' + selected.userData.id;
+
+  if (MODE === 'studio') {
+    partSection.style.display = '';
+    if (document.activeElement !== partNameInput) {
+      partNameInput.value = selected.userData.partName || '';
+    }
+    renderParentSelect();
+    partParentSelect.value = selected.userData.parentId || '';
+  } else {
+    partSection.style.display = 'none';
+  }
 
   const p = selected.position;
   const r = selected.rotation;
@@ -1393,6 +1570,84 @@ function setInput(p, v) {
 function setSlider(p, v) {
   const el = propsEl.querySelector(`input[data-s="${p}"]`);
   if (el && document.activeElement !== el) el.value = v;
+}
+
+partNameInput.addEventListener('input', () => {
+  if (!selected) return;
+  selected.userData.partName = partNameInput.value;
+  renderPartTree();
+  debouncedHistory();
+});
+
+partParentSelect.addEventListener('change', () => {
+  if (!selected) return;
+  const newParentId = partParentSelect.value || null;
+  if (newParentId === selected.userData.id) return;
+
+  if (newParentId) {
+    let check = findPartById(newParentId);
+    while (check) {
+      if (check.userData.id === selected.userData.id) {
+        showHint('⚠️', 'Isso criaria um ciclo!', 2000);
+        partParentSelect.value = selected.userData.parentId || '';
+        return;
+      }
+      check = check.userData.parentId ? findPartById(check.userData.parentId) : null;
+    }
+  }
+
+  setParent(selected, newParentId);
+  pushHistory();
+  renderPartTree();
+});
+
+function setParent(obj, newParentId) {
+  const worldPos = new THREE.Vector3();
+  obj.getWorldPosition(worldPos);
+
+  obj.userData.parentId = newParentId;
+
+  if (newParentId) {
+    const parent = findPartById(newParentId);
+    if (parent) {
+      parent.add(obj);
+      obj.position.copy(worldPos);
+      parent.worldToLocal(obj.position);
+    }
+  } else {
+    currentGroup().add(obj);
+    obj.position.copy(worldPos);
+  }
+}
+
+function findPartById(id) {
+  return currentObjects().find(o => o.userData.id === id) || null;
+}
+
+function getChildrenOf(parentId) {
+  return currentObjects().filter(o => o.userData.parentId === parentId);
+}
+
+function renderParentSelect() {
+  if (!selected) return;
+  const opts = ['<option value="">— Nenhuma (raiz) —</option>'];
+  currentObjects().forEach(o => {
+    if (o === selected) return;
+    let check = o;
+    let isDescendant = false;
+    while (check && check.userData.parentId) {
+      if (check.userData.parentId === selected.userData.id) {
+        isDescendant = true;
+        break;
+      }
+      check = findPartById(check.userData.parentId);
+    }
+    if (isDescendant) return;
+
+    const name = o.userData.partName || ('peça_' + o.userData.id);
+    opts.push(`<option value="${o.userData.id}">${name}</option>`);
+  });
+  partParentSelect.innerHTML = opts.join('');
 }
 
 propsEl.querySelectorAll('input[data-p]').forEach(inp => {
@@ -1481,7 +1736,55 @@ document.getElementById('pDup').onclick = duplicateSelected;
 document.getElementById('pDel').onclick = deleteSelected;
 
 /* ============================================================
-   MENU DE CONTEXTO
+   ÁRVORE
+============================================================ */
+function renderPartTree() {
+  if (MODE !== 'studio') return;
+  const list = document.getElementById('partTreeList');
+  list.innerHTML = '';
+
+  if (currentObjects().length === 0) {
+    list.innerHTML = '<div class="empty">Nenhuma peça ainda.<br>Clique no chão pra criar!</div>';
+    return;
+  }
+
+  function renderNode(obj, depth) {
+    const indent = '│  '.repeat(depth);
+    const name = obj.userData.partName || ('peça_' + obj.userData.id);
+    const color = '#' + obj.material.color.getHexString();
+    const shape = obj.userData.shape;
+
+    const el = document.createElement('div');
+    el.className = 'partItem' + (selected === obj ? ' active' : '');
+    el.innerHTML = `
+      <span class="indent">${depth > 0 ? indent + '└─ ' : ''}</span>
+      <span class="pColor" style="background:${color}"></span>
+      <span class="pName">${escapeHtml(name)}</span>
+      <span class="pShape">${shape}</span>
+    `;
+    el.onclick = () => {
+      selectObject(obj);
+      const pos = new THREE.Vector3();
+      obj.getWorldPosition(pos);
+      camPos.copy(pos).add(new THREE.Vector3(5, 5, 5));
+    };
+    list.appendChild(el);
+
+    getChildrenOf(obj.userData.id).forEach(child => renderNode(child, depth + 1));
+  }
+
+  const roots = currentObjects().filter(o => !o.userData.parentId);
+  roots.forEach(r => renderNode(r, 0));
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+/* ============================================================
+   CONTEXTO
 ============================================================ */
 const ctx = document.getElementById('ctx');
 renderer.domElement.addEventListener('contextmenu', e => {
@@ -1529,10 +1832,11 @@ function duplicateSelected() {
   c.material = selected.material.clone();
   c.userData = { ...selected.userData, id: ++objId };
   c.position.x += 1;
-  objectsGroup.add(c);
+  currentGroup().add(c);
   updateCount();
   pushHistory();
   selectObject(c);
+  if (MODE === 'studio') renderPartTree();
   showHint('⧉', 'Duplicado!');
 }
 
@@ -1559,10 +1863,14 @@ function pasteClipboard() {
 
 function deleteSelected() {
   if (!selected) return;
-  objectsGroup.remove(selected);
+  const children = getChildrenOf(selected.userData.id);
+  children.forEach(child => setParent(child, null));
+
+  currentGroup().remove(selected);
   selectObject(null);
   updateCount();
   pushHistory();
+  if (MODE === 'studio') renderPartTree();
 }
 
 /* ============================================================
@@ -1572,27 +1880,67 @@ const undoStack = [], redoStack = [];
 let lastSnap = null;
 
 function snapshot() {
-  return JSON.stringify(objectsGroup.children.map(o => ({
-    shape: o.userData.shape,
-    position: o.position.toArray(),
-    rotation: [o.rotation.x, o.rotation.y, o.rotation.z],
-    scale: o.scale.toArray(),
-    color: o.material.color.getHex()
-  })));
+  if (MODE === 'studio') {
+    return JSON.stringify(currentObjects().map(o => ({
+      shape: o.userData.shape,
+      position: o.position.toArray(),
+      rotation: [o.rotation.x, o.rotation.y, o.rotation.z],
+      scale: o.scale.toArray(),
+      color: o.material.color.getHex(),
+      partName: o.userData.partName,
+      parentId: o.userData.parentId,
+    })));
+  } else {
+    return JSON.stringify(currentObjects().map(o => ({
+      shape: o.userData.shape,
+      position: o.position.toArray(),
+      rotation: [o.rotation.x, o.rotation.y, o.rotation.z],
+      scale: o.scale.toArray(),
+      color: o.material.color.getHex()
+    })));
+  }
 }
 
 function restore(str) {
-  while (objectsGroup.children.length) {
-    const c = objectsGroup.children.pop();
+  while (currentGroup().children.length) {
+    const c = currentGroup().children.pop();
     c.geometry?.dispose();
     c.material?.dispose();
   }
-  JSON.parse(str).forEach(d => {
-    const m = createObject(d.shape, new THREE.Vector3().fromArray(d.position), d.color);
-    m.rotation.set(d.rotation[0], d.rotation[1], d.rotation[2]);
-    m.scale.fromArray(d.scale);
-  });
+
+  const data = JSON.parse(str);
+
+  if (MODE === 'studio') {
+    const created = [];
+    data.forEach(d => {
+      const m = createObject(d.shape, new THREE.Vector3().fromArray(d.position), d.color);
+      m.rotation.set(d.rotation[0], d.rotation[1], d.rotation[2]);
+      m.scale.fromArray(d.scale);
+      m.userData.partName = d.partName || '';
+      m.userData.parentId = d.parentId || null;
+      created.push(m);
+    });
+    created.forEach(obj => {
+      if (obj.userData.parentId) {
+        const parent = created.find(p => p.userData.id === obj.userData.parentId);
+        if (parent) {
+          const worldPos = obj.position.clone();
+          parent.add(obj);
+          obj.position.copy(worldPos);
+        }
+      }
+    });
+    renderPartTree();
+  } else {
+    data.forEach(d => {
+      const m = createObject(d.shape, new THREE.Vector3().fromArray(d.position), d.color);
+      m.rotation.set(d.rotation[0], d.rotation[1], d.rotation[2]);
+      m.scale.fromArray(d.scale);
+    });
+  }
+
   selectObject(null);
+  updateCount();
 }
 
 function pushHistory() {
@@ -1629,14 +1977,17 @@ function redo() {
 
 document.getElementById('btnUndo').onclick = undo;
 document.getElementById('btnRedo').onclick = redo;
+document.getElementById('btnStudioUndo').onclick = undo;
+document.getElementById('btnStudioRedo').onclick = redo;
 
 /* ============================================================
-   CÓDIGO DO MAPA
+   CÓDIGO
 ============================================================ */
-const CODE_PREFIX = 'MS3D:';
+const CODE_MAP = 'MS3D:';
+const CODE_CREATURE = 'MS3D-CRIATURA:';
 
 function serializeMap() {
-  return objectsGroup.children.map(o => {
+  return currentObjects().map(o => {
     const r3 = n => Math.round(n * 1000) / 1000;
     return [
       o.userData.shape,
@@ -1648,29 +1999,54 @@ function serializeMap() {
   });
 }
 
-function encodeMap() {
-  const data = serializeMap();
-  const json = JSON.stringify(data);
-  const bytes = new TextEncoder().encode(json);
-  const compressed = pako.deflate(bytes);
-  return CODE_PREFIX + bytesToBase64url(compressed);
+function serializeCreature() {
+  return currentObjects().map(o => {
+    const r3 = n => Math.round(n * 1000) / 1000;
+    return {
+      shape: o.userData.shape,
+      pos: [r3(o.position.x), r3(o.position.y), r3(o.position.z)],
+      rot: [r3(o.rotation.x), r3(o.rotation.y), r3(o.rotation.z)],
+      scale: [r3(o.scale.x), r3(o.scale.y), r3(o.scale.z)],
+      color: o.material.color.getHex(),
+      name: o.userData.partName || '',
+      parent: o.userData.parentId || null,
+    };
+  });
 }
 
-function decodeMap(code) {
+function encodeString(prefix, str) {
+  const bytes = new TextEncoder().encode(str);
+  const compressed = pako.deflate(bytes);
+  return prefix + bytesToBase64url(compressed);
+}
+
+function decodeString(prefix, code) {
   code = code.trim();
-  if (!code.startsWith(CODE_PREFIX)) throw new Error('Código inválido.');
-  const b64 = code.slice(CODE_PREFIX.length);
+  if (!code.startsWith(prefix)) throw new Error('Código inválido: precisa começar com "' + prefix + '"');
+  const b64 = code.slice(prefix.length);
   const compressed = base64urlToBytes(b64);
   const bytes = pako.inflate(compressed);
-  const json = new TextDecoder().decode(bytes);
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeMap() { return encodeString(CODE_MAP, JSON.stringify(serializeMap())); }
+function decodeMap(code) {
+  const json = decodeString(CODE_MAP, code);
   const data = JSON.parse(json);
   if (!Array.isArray(data)) throw new Error('Código não contém blocos.');
   return data;
 }
+function encodeCreature() { return encodeString(CODE_CREATURE, JSON.stringify(serializeCreature())); }
+function decodeCreature(code) {
+  const json = decodeString(CODE_CREATURE, code);
+  const data = JSON.parse(json);
+  if (!Array.isArray(data)) throw new Error('Código não contém peças.');
+  return data;
+}
 
 function applyMapData(data) {
-  while (objectsGroup.children.length) {
-    const c = objectsGroup.children.pop();
+  while (mapGroup.children.length) {
+    const c = mapGroup.children.pop();
     c.geometry?.dispose();
     c.material?.dispose();
   }
@@ -1680,6 +2056,35 @@ function applyMapData(data) {
     createObject(shape, new THREE.Vector3(px,py,pz), color, [rx,ry,rz], [sx,sy,sz]);
   });
   selectObject(null);
+  updateCount();
+}
+
+function applyCreatureData(data) {
+  while (creatureGroup.children.length) {
+    const c = creatureGroup.children.pop();
+    c.geometry?.dispose();
+    c.material?.dispose();
+  }
+  const created = [];
+  data.forEach(d => {
+    const m = createObject(d.shape, new THREE.Vector3().fromArray(d.pos), d.color, d.rot, d.scale);
+    m.userData.partName = d.name || '';
+    m.userData.parentId = d.parent || null;
+    created.push(m);
+  });
+  created.forEach(obj => {
+    if (obj.userData.parentId) {
+      const parent = created.find(p => p.userData.id === obj.userData.parentId);
+      if (parent) {
+        const wp = obj.position.clone();
+        parent.add(obj);
+        obj.position.copy(wp);
+      }
+    }
+  });
+  selectObject(null);
+  updateCount();
+  renderPartTree();
 }
 
 function bytesToBase64url(bytes) {
@@ -1713,19 +2118,22 @@ const codeLen = document.getElementById('codeLen');
 const importLen = document.getElementById('importLen');
 
 function openExport() {
-  const code = encodeMap();
+  const isStudio = MODE === 'studio';
+  const code = isStudio ? encodeCreature() : encodeMap();
   exportCode.value = code;
   codeLen.textContent = code.length.toLocaleString('pt-BR') + ' caracteres';
-  document.getElementById('statBlocks').textContent = objectsGroup.children.length;
+  document.getElementById('statBlocks').textContent = currentObjects().length;
+  document.getElementById('statBlocksLabel').textContent = isStudio ? 'Peças' : 'Blocos';
   document.getElementById('statSize').textContent = formatBytes(new TextEncoder().encode(code).length);
-  codeModalTitle.textContent = '📤 Exportar mapa';
+  codeModalTitle.textContent = isStudio ? '📤 Exportar criatura' : '📤 Exportar mapa';
   codeExportView.style.display = '';
   codeImportView.style.display = 'none';
   codeModal.classList.add('show');
 }
 
 function openImport() {
-  codeModalTitle.textContent = '📥 Importar mapa';
+  const isStudio = MODE === 'studio';
+  codeModalTitle.textContent = isStudio ? '📥 Importar criatura' : '📥 Importar mapa';
   codeExportView.style.display = 'none';
   codeImportView.style.display = '';
   importCode.value = '';
@@ -1736,6 +2144,8 @@ function openImport() {
 
 document.getElementById('btnExport').onclick = openExport;
 document.getElementById('btnImport').onclick = openImport;
+document.getElementById('btnExportCreature').onclick = openExport;
+document.getElementById('btnImportCreature').onclick = openImport;
 
 importCode.addEventListener('input', () => {
   importLen.textContent = importCode.value.length.toLocaleString('pt-BR') + ' caracteres';
@@ -1766,7 +2176,7 @@ document.getElementById('btnShareCode').onclick = async () => {
     btn.textContent = '✅ Link copiado!';
     setTimeout(() => btn.textContent = old, 1500);
   } catch (e) {
-    alert('Link gerado (copie manualmente):\n\n' + url.toString());
+    alert('Link gerado:\n\n' + url.toString());
   }
 };
 
@@ -1774,11 +2184,19 @@ document.getElementById('btnDoImport').onclick = () => {
   const code = importCode.value.trim();
   if (!code) { alert('Cole um código primeiro!'); return; }
   try {
-    const data = decodeMap(code);
-    applyMapData(data);
-    pushHistory();
-    codeModal.classList.remove('show');
-    showHint('✅', `Mapa importado! ${data.length} blocos`, 2500);
+    if (MODE === 'studio') {
+      const data = decodeCreature(code);
+      applyCreatureData(data);
+      pushHistory();
+      codeModal.classList.remove('show');
+      showHint('✅', `Criatura importada! ${data.length} peças`, 2500);
+    } else {
+      const data = decodeMap(code);
+      applyMapData(data);
+      pushHistory();
+      codeModal.classList.remove('show');
+      showHint('✅', `Mapa importado! ${data.length} blocos`, 2500);
+    }
   } catch (err) {
     alert('❌ Erro ao importar:\n\n' + err.message);
   }
@@ -1801,7 +2219,6 @@ document.querySelectorAll('.modalClose').forEach(btn => {
   btn.onclick = () => document.getElementById(btn.dataset.close).classList.remove('show');
 });
 
-// Fechar modais clicando fora (exceto o de confirmação, que precisa ser explícito)
 document.querySelectorAll('.modal').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target === m && m.id !== 'confirmClearModal') {
@@ -1816,30 +2233,79 @@ function formatBytes(b) {
   return (b/(1024*1024)).toFixed(2) + ' MB';
 }
 
-function tryLoadFromHash() {
-  if (!location.hash) return;
-  try {
-    const code = decodeURIComponent(location.hash.slice(1));
-    if (code.startsWith(CODE_PREFIX)) {
-      applyMapData(decodeMap(code));
-      setTimeout(() => showHint('✅', 'Mapa carregado do link!', 2500), 100);
-    }
-  } catch (e) { console.warn(e); }
+/* ============================================================
+   ESTÚDIO
+============================================================ */
+function enterStudio() {
+  if (MODE === 'studio') return;
+  MODE = 'studio';
+  forceRelease();
+  mapGroup.visible = false;
+  creatureGroup.visible = true;
+  document.getElementById('topbar').style.display = 'none';
+  document.getElementById('shapeMenu').style.display = 'none';
+  document.getElementById('studioBar').classList.add('show');
+  document.getElementById('partTree').classList.add('show');
+  document.getElementById('statCountLabel').innerHTML = 'Peças: <span class="stat" id="statCount">0</span>';
+  updateCount();
+  renderPartTree();
+
+  camPos.set(6, 6, 6);
+  yaw = Math.PI / 4;
+  pitch = -Math.PI / 6;
+
+  selectObject(null);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  lastSnap = snapshot();
+
+  showHint('🐴', 'Bem-vindo ao Estúdio!');
 }
 
-/* ============================================================
-   LIMPAR TUDO (com confirmação)
-============================================================ */
-const btnClear = document.getElementById('btnClear');
+function exitStudio() {
+  if (MODE === 'map') return;
+  MODE = 'map';
+  forceRelease();
+  mapGroup.visible = true;
+  creatureGroup.visible = false;
+  document.getElementById('topbar').style.display = '';
+  document.getElementById('shapeMenu').style.display = '';
+  document.getElementById('studioBar').classList.remove('show');
+  document.getElementById('partTree').classList.remove('show');
+  document.getElementById('statCountLabel').innerHTML = 'Objetos: <span class="stat" id="statCount">0</span>';
+  updateCount();
 
-btnClear.onclick = () => {
-  const count = objectsGroup.children.length;
-  if (count === 0) {
-    showHint('💭', 'O mapa já tá vazio!', 2000);
-    return;
-  }
+  camPos.set(10, 10, 10);
+  yaw = Math.PI / 4;
+  pitch = -Math.PI / 5;
+
+  selectObject(null);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  lastSnap = snapshot();
+
+  showHint('🗺️', 'De volta ao mapa!');
+}
+
+document.getElementById('btnOpenStudio').onclick = enterStudio;
+document.getElementById('btnBackToMap').onclick = exitStudio;
+
+/* ============================================================
+   LIMPAR
+============================================================ */
+document.getElementById('btnClear').onclick = () => {
+  const count = mapGroup.children.length;
+  if (count === 0) { showHint('💭', 'O mapa já tá vazio!', 2000); return; }
   document.getElementById('clearCount').textContent =
     count === 1 ? '1 objeto no mapa' : `${count} objetos no mapa`;
+  confirmClearModal.classList.add('show');
+};
+
+document.getElementById('btnClearCreature').onclick = () => {
+  const count = creatureGroup.children.length;
+  if (count === 0) { showHint('💭', 'A criatura tá vazia!', 2000); return; }
+  document.getElementById('clearCount').textContent =
+    count === 1 ? '1 peça na criatura' : `${count} peças na criatura`;
   confirmClearModal.classList.add('show');
 };
 
@@ -1848,15 +2314,29 @@ document.getElementById('btnCancelClear').onclick = () => {
 };
 
 document.getElementById('btnConfirmClear').onclick = () => {
-  restore('[]');
-  pushHistory();
+  if (MODE === 'studio') {
+    while (creatureGroup.children.length) {
+      const c = creatureGroup.children.pop();
+      c.geometry?.dispose();
+      c.material?.dispose();
+    }
+    renderPartTree();
+  } else {
+    while (mapGroup.children.length) {
+      const c = mapGroup.children.pop();
+      c.geometry?.dispose();
+      c.material?.dispose();
+    }
+  }
   updateCount();
+  selectObject(null);
+  pushHistory();
   confirmClearModal.classList.remove('show');
   showHint('🧹', 'Tudo apagado! Ctrl+Z pra voltar', 2500);
 };
 
 /* ============================================================
-   MENU DE FORMAS
+   FORMAS
 ============================================================ */
 document.querySelectorAll('#shapeMenu .shape').forEach(b => {
   b.onclick = () => {
@@ -1913,15 +2393,19 @@ helpBtn.onclick = () => {
 };
 
 /* ============================================================
-   ATALHOS
+   ATALHOS — com proteção dupla contra digitação
 ============================================================ */
 addEventListener('keydown', e => {
-  const typing = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+  // Se tá digitando, NUNCA processa atalhos (exceto Esc e Ctrl+Z/Y)
+  if (isTyping()) {
+    // Permitir Ctrl+Z/Y mesmo digitando? Não, deixa o navegador cuidar do undo do input
+    return;
+  }
+
   const anyModal = helpModal.classList.contains('show') ||
                    codeModal.classList.contains('show') ||
                    confirmClearModal.classList.contains('show');
 
-  // Esc fecha modais (menos o de confirmação — esse é proposital ter que clicar)
   if (e.code === 'Escape' && anyModal) {
     if (confirmClearModal.classList.contains('show')) {
       confirmClearModal.classList.remove('show');
@@ -1932,13 +2416,13 @@ addEventListener('keydown', e => {
     return;
   }
 
-  if (e.ctrlKey && e.code === 'KeyZ' && !typing) { e.preventDefault(); undo(); return; }
-  if (e.ctrlKey && e.code === 'KeyY' && !typing) { e.preventDefault(); redo(); return; }
-  if (e.ctrlKey && e.code === 'KeyD' && !typing) { e.preventDefault(); duplicateSelected(); return; }
-  if (e.ctrlKey && e.code === 'KeyC' && !typing && !anyModal) { e.preventDefault(); copySelected(); return; }
-  if (e.ctrlKey && e.code === 'KeyV' && !typing && !anyModal) { e.preventDefault(); pasteClipboard(); return; }
+  if (anyModal) return;
 
-  if (typing || anyModal) return;
+  if (e.ctrlKey && e.code === 'KeyZ') { e.preventDefault(); undo(); return; }
+  if (e.ctrlKey && e.code === 'KeyY') { e.preventDefault(); redo(); return; }
+  if (e.ctrlKey && e.code === 'KeyD') { e.preventDefault(); duplicateSelected(); return; }
+  if (e.ctrlKey && e.code === 'KeyC') { e.preventDefault(); copySelected(); return; }
+  if (e.ctrlKey && e.code === 'KeyV') { e.preventDefault(); pasteClipboard(); return; }
 
   switch (e.code) {
     case 'Digit1': currentShape='box';      setShapeBtn('box'); break;
@@ -1963,6 +2447,24 @@ function setShapeBtn(shape) {
   document.querySelectorAll('#shapeMenu .shape').forEach(b => {
     b.classList.toggle('active', b.dataset.shape === shape);
   });
+}
+
+/* ============================================================
+   HASH
+============================================================ */
+function tryLoadFromHash() {
+  if (!location.hash) return;
+  try {
+    const code = decodeURIComponent(location.hash.slice(1));
+    if (code.startsWith(CODE_CREATURE)) {
+      enterStudio();
+      applyCreatureData(decodeCreature(code));
+      setTimeout(() => showHint('✅', 'Criatura carregada do link!', 2500), 100);
+    } else if (code.startsWith(CODE_MAP)) {
+      applyMapData(decodeMap(code));
+      setTimeout(() => showHint('✅', 'Mapa carregado do link!', 2500), 100);
+    }
+  } catch (e) { console.warn(e); }
 }
 
 /* ============================================================
