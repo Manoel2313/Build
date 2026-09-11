@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Mini Studio 3D — v6 (otimizado)</title>
+<title>Mini Studio 3D — v7 (dicionário)</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; overflow:hidden; background:#2b2f36; font-family: system-ui, Arial, sans-serif; }
@@ -16,15 +16,6 @@
   body.tool-color canvas  { cursor: cell; }
   body.select-mode canvas { cursor: crosshair; }
 
-  /* ============================================================
-     LAYOUT — sem sobreposição
-     topo: 76px (formas + margem)
-     base: 130px (ferramentas + margem)
-  ============================================================ */
-
-  /* ============================================================
-     BARRA DE FORMAS (topo, sempre visível)
-  ============================================================ */
   #shapeBar {
     position:fixed; top:12px; left:50%; transform:translateX(-50%);
     background:rgba(30,32,38,0.95); backdrop-filter: blur(12px);
@@ -38,7 +29,6 @@
     height: 72px;
   }
   #shapeBar::-webkit-scrollbar { display: none; }
-
   #shapeBar .barLabel {
     font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
     color: #8a8f98; font-weight: 700; padding: 0 8px;
@@ -46,7 +36,6 @@
     border-right: 1px solid #3a3f47;
     margin-right: 4px;
   }
-
   .shapeCard {
     background: #2b2f36;
     border: 2px solid #3a3f47;
@@ -59,69 +48,31 @@
     min-width: 64px;
     flex-shrink: 0;
   }
-  .shapeCard:hover {
-    border-color: #5865f2;
-    background: #353a42;
-    transform: translateY(-2px);
-  }
+  .shapeCard:hover { border-color: #5865f2; background: #353a42; transform: translateY(-2px); }
   .shapeCard.active {
     background: linear-gradient(135deg, #5865f2, #7c3aed);
     border-color: #7c3aed;
     box-shadow: 0 0 0 3px rgba(88,101,242,0.35);
   }
-  .shapeCard .shapeIcon {
-    width: 28px; height: 28px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .shapeCard .shapeName {
-    font-size: 10px; font-weight: 700; color: #cfd2d8;
-    letter-spacing: 0.3px;
-  }
+  .shapeCard .shapeIcon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+  .shapeCard .shapeName { font-size: 10px; font-weight: 700; color: #cfd2d8; letter-spacing: 0.3px; }
   .shapeCard.active .shapeName { color: #fff; }
 
-  .icoCube {
-    width: 22px; height: 22px; background: #a0a4ab;
-    border-radius: 4px; transform: rotate(-8deg);
-    box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
-  }
+  .icoCube { width: 22px; height: 22px; background: #a0a4ab; border-radius: 4px; transform: rotate(-8deg); box-shadow: 4px 4px 0 rgba(0,0,0,0.2); }
   .shapeCard.active .icoCube { background: #fff; }
-  .icoSphere {
-    width: 24px; height: 24px; background: radial-gradient(circle at 30% 30%, #d0d4db, #808080);
-    border-radius: 50%;
-  }
+  .icoSphere { width: 24px; height: 24px; background: radial-gradient(circle at 30% 30%, #d0d4db, #808080); border-radius: 50%; }
   .shapeCard.active .icoSphere { background: radial-gradient(circle at 30% 30%, #fff, #b0b4bb); }
-  .icoTriangle {
-    width: 24px; height: 24px; background: #a0a4ab;
-    clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  }
+  .icoTriangle { width: 24px; height: 24px; background: #a0a4ab; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
   .shapeCard.active .icoTriangle { background: #fff; }
-  .icoCylinder {
-    width: 20px; height: 26px; background: #a0a4ab;
-    border-radius: 50% / 15%;
-    position: relative;
-  }
-  .icoCylinder::before {
-    content:''; position:absolute; top:0; left:0; right:0; height:7px;
-    background: #c0c4cb; border-radius: 50%;
-  }
+  .icoCylinder { width: 20px; height: 26px; background: #a0a4ab; border-radius: 50% / 15%; position: relative; }
+  .icoCylinder::before { content:''; position:absolute; top:0; left:0; right:0; height:7px; background: #c0c4cb; border-radius: 50%; }
   .shapeCard.active .icoCylinder { background: #fff; }
   .shapeCard.active .icoCylinder::before { background: #e0e4eb; }
-  .icoCone {
-    width: 0; height: 0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-bottom: 24px solid #a0a4ab;
-  }
+  .icoCone { width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-bottom: 24px solid #a0a4ab; }
   .shapeCard.active .icoCone { border-bottom-color: #fff; }
-  .icoWedge {
-    width: 24px; height: 24px; background: #a0a4ab;
-    clip-path: polygon(0 100%, 100% 100%, 0 0);
-  }
+  .icoWedge { width: 24px; height: 24px; background: #a0a4ab; clip-path: polygon(0 100%, 100% 100%, 0 0); }
   .shapeCard.active .icoWedge { background: #fff; }
 
-  /* ============================================================
-     BARRA DE FERRAMENTAS (base, sempre visível)
-  ============================================================ */
   #toolBar {
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
     background:rgba(30,32,38,0.95); backdrop-filter: blur(12px);
@@ -135,7 +86,6 @@
     height: 76px;
   }
   #toolBar::-webkit-scrollbar { display: none; }
-
   #toolBar .barLabel {
     font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
     color: #8a8f98; font-weight: 700; padding: 0 6px;
@@ -143,43 +93,21 @@
     border-right: 1px solid #3a3f47;
     margin-right: 2px;
   }
-
   .toolCard {
-    background: #2b2f36;
-    border: 2px solid #3a3f47;
-    border-radius: 12px;
-    padding: 6px 12px;
-    cursor: pointer;
+    background: #2b2f36; border: 2px solid #3a3f47; border-radius: 12px;
+    padding: 6px 12px; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
-    transition: all .15s;
-    user-select: none;
-    min-width: 74px;
-    flex-shrink: 0;
+    transition: all .15s; user-select: none; min-width: 74px; flex-shrink: 0;
   }
-  .toolCard:hover {
-    border-color: #5865f2;
-    background: #353a42;
-    transform: translateY(-2px);
-  }
-  .toolCard .toolIcon {
-    font-size: 20px;
-    line-height: 1;
-    color: #a0a4ab;
-  }
-  .toolCard .toolName {
-    font-size: 10px; font-weight: 700; color: #cfd2d8;
-    letter-spacing: 0.3px;
-  }
-
+  .toolCard:hover { border-color: #5865f2; background: #353a42; transform: translateY(-2px); }
+  .toolCard .toolIcon { font-size: 20px; line-height: 1; color: #a0a4ab; }
+  .toolCard .toolName { font-size: 10px; font-weight: 700; color: #cfd2d8; letter-spacing: 0.3px; }
   .toolCard[data-tool="select"].active { background: linear-gradient(135deg, #5865f2, #7c3aed); border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(88,101,242,0.35); }
   .toolCard[data-tool="move"].active { background: linear-gradient(135deg, #3498db, #2980b9); border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.35); }
   .toolCard[data-tool="rotate"].active { background: linear-gradient(135deg, #e67e22, #d35400); border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.35); }
   .toolCard[data-tool="scale"].active { background: linear-gradient(135deg, #3ba55d, #2d8a4a); border-color: #3ba55d; box-shadow: 0 0 0 3px rgba(59,165,93,0.35); }
   .toolCard[data-tool="color"].active { background: linear-gradient(135deg, #a259ff, #7c3aed); border-color: #a259ff; box-shadow: 0 0 0 3px rgba(162,89,255,0.35); }
-
-  .toolCard.active .toolName { color: #fff; }
-  .toolCard.active .toolIcon { color: #fff; }
-
+  .toolCard.active .toolName, .toolCard.active .toolIcon { color: #fff; }
   .toolCard.areaMode { border-color: #00bcd4; }
   .toolCard.areaMode:hover { background: #1f3238; border-color: #00e5ff; }
   .toolCard.areaMode.active {
@@ -188,48 +116,25 @@
     box-shadow: 0 0 0 3px rgba(0,188,212,0.4);
     animation: pulseArea 1.5s infinite;
   }
-  .toolCard.areaMode.active .toolIcon,
-  .toolCard.areaMode.active .toolName { color: #fff; }
+  .toolCard.areaMode.active .toolIcon, .toolCard.areaMode.active .toolName { color: #fff; }
   @keyframes pulseArea {
     0%,100% { box-shadow: 0 0 0 3px rgba(0,188,212,0.4); }
     50% { box-shadow: 0 0 0 6px rgba(0,188,212,0.7); }
   }
-
-  .barDivider {
-    width: 2px; height: 48px;
-    background: #3a3f47;
-    margin: 0 4px;
-    align-self: center;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
+  .barDivider { width: 2px; height: 48px; background: #3a3f47; margin: 0 4px; align-self: center; border-radius: 2px; flex-shrink: 0; }
   .actionBtn {
-    background: #2b2f36;
-    border: 2px solid #3a3f47;
-    border-radius: 12px;
-    padding: 6px 12px;
-    cursor: pointer;
+    background: #2b2f36; border: 2px solid #3a3f47; border-radius: 12px;
+    padding: 6px 12px; cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
-    transition: all .15s;
-    user-select: none;
-    min-width: 70px;
-    flex-shrink: 0;
+    transition: all .15s; user-select: none; min-width: 70px; flex-shrink: 0;
   }
-  .actionBtn:hover {
-    border-color: #5865f2;
-    background: #353a42;
-    transform: translateY(-2px);
-  }
+  .actionBtn:hover { border-color: #5865f2; background: #353a42; transform: translateY(-2px); }
   .actionBtn.danger:hover { border-color: #a13a3a; background: #3d2a2a; }
   .actionBtn .toolIcon { font-size: 18px; line-height: 1; color: #a0a4ab; }
   .actionBtn .toolName { font-size: 10px; font-weight: 700; color: #cfd2d8; }
   .actionBtn.danger .toolIcon { color: #ff8a8a; }
   .actionBtn.danger .toolName { color: #ff8a8a; }
 
-  /* ============================================================
-     CANTO SUPERIOR ESQUERDO
-  ============================================================ */
   #topLeftControls {
     position:fixed; top:12px; left:12px; z-index:32;
     display: flex; gap: 8px; flex-direction: column;
@@ -240,15 +145,10 @@
     height: 48px; min-width: 48px; padding: 0 12px;
     cursor:pointer; color:#cfd2d8;
     display:flex; align-items:center; justify-content:center; gap: 8px;
-    font-size: 20px;
-    transition: all .15s;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    font-weight: 700;
+    font-size: 20px; transition: all .15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4); font-weight: 700;
   }
-  .floatBtn:hover {
-    background:#5865f2; color:#fff; transform: scale(1.05);
-    border-color: #5865f2;
-  }
+  .floatBtn:hover { background:#5865f2; color:#fff; transform: scale(1.05); border-color: #5865f2; }
   .floatBtn .label { font-size: 12px; display: none; }
   @media (min-width: 1200px) {
     .floatBtn .label { display: inline; }
@@ -269,23 +169,14 @@
     50% { box-shadow: 0 4px 28px rgba(88,101,242,1); }
   }
 
-  /* ============================================================
-     CANTO SUPERIOR DIREITO — FPS
-  ============================================================ */
   #fpsBox {
     position: fixed; top: 12px; right: 12px; z-index: 32;
     background: rgba(30,32,38,0.9); backdrop-filter: blur(8px);
-    border: 1px solid #3a3f47;
-    border-radius: 12px;
-    padding: 8px 12px;
-    font-family: monospace;
-    font-size: 13px;
-    color: #7fffd4;
-    font-weight: 700;
+    border: 1px solid #3a3f47; border-radius: 12px;
+    padding: 8px 12px; font-family: monospace; font-size: 13px;
+    color: #7fffd4; font-weight: 700;
     box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    user-select: none;
-    display: flex; flex-direction: column; gap: 2px;
-    min-width: 90px;
+    user-select: none; display: flex; flex-direction: column; gap: 2px; min-width: 90px;
   }
   #fpsBox .line { display: flex; justify-content: space-between; gap: 8px; }
   #fpsBox .line .lbl { color: #8a8f98; font-weight: 400; }
@@ -293,27 +184,18 @@
   #fpsBox .fpsMid  { color: #e67e22; }
   #fpsBox .fpsBad  { color: #a13a3a; }
 
-  /* ============================================================
-     BANNER MODO ÁREA (fica logo abaixo da barra de formas)
-  ============================================================ */
   #areaModeBanner {
     position:fixed; top:96px; left:50%; transform:translateX(-50%) translateY(-20px);
-    background: linear-gradient(135deg, #00bcd4, #0097a7);
-    color:#fff;
+    background: linear-gradient(135deg, #00bcd4, #0097a7); color:#fff;
     padding: 10px 22px; border-radius: 14px;
     font-size: 14px; font-weight: 700;
     box-shadow: 0 8px 24px rgba(0,188,212,0.5);
     opacity:0; transition: all .3s;
     pointer-events: none; z-index: 40;
-    display: flex; align-items: center; gap: 10px;
-    white-space: nowrap;
+    display: flex; align-items: center; gap: 10px; white-space: nowrap;
   }
   #areaModeBanner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  #areaModeBanner .emoji { font-size: 20px; }
 
-  /* ============================================================
-     HINT
-  ============================================================ */
   #hint {
     position:fixed; bottom:110px; left:50%; transform:translateX(-50%) translateY(20px);
     background:rgba(88,101,242,0.95); color:#fff;
@@ -322,53 +204,27 @@
     box-shadow: 0 8px 24px rgba(88,101,242,0.55);
     opacity:0; transition: all .25s;
     pointer-events: none; z-index: 100;
-    display: flex; align-items: center; gap: 10px;
-    white-space: nowrap;
+    display: flex; align-items: center; gap: 10px; white-space: nowrap;
   }
   #hint.show { opacity:1; transform: translateX(-50%) translateY(0); }
   #hint .emoji { font-size: 20px; }
 
-  /* ============================================================
-     LEMBRETE DE CÂMERA (canto inferior esquerdo, sobe acima da barra)
-  ============================================================ */
   #cameraHint {
     position:fixed; bottom:110px; left:12px; z-index:25;
     background:rgba(30,32,38,0.9); backdrop-filter: blur(10px);
     border:1px solid #3a3f47; border-radius: 14px;
-    padding: 10px 14px;
-    color: #8a8f98;
-    font-size: 11px;
-    line-height: 1.6;
+    padding: 10px 14px; color: #8a8f98; font-size: 11px; line-height: 1.6;
     box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    user-select: none;
-    max-width: 200px;
+    user-select: none; max-width: 200px;
   }
-  #cameraHint .title {
-    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
-    color: #5865f2; font-weight: 700; margin-bottom: 6px;
-  }
-  #cameraHint .row {
-    display: flex; align-items: center; gap: 6px; margin-bottom: 3px;
-  }
-  #cameraHint .key {
-    background: #1e2026; border: 1px solid #4a4f57;
-    border-bottom-width: 2px;
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 10px; color: #cfd2d8;
-    font-family: monospace;
-    font-weight: 700;
-    min-width: 18px;
-    text-align: center;
-  }
+  #cameraHint .title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #5865f2; font-weight: 700; margin-bottom: 6px; }
+  #cameraHint .row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  #cameraHint .key { background: #1e2026; border: 1px solid #4a4f57; border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; font-size: 10px; color: #cfd2d8; font-family: monospace; font-weight: 700; min-width: 18px; text-align: center; }
   #cameraHint .text { color: #a8adb8; font-size: 11px; }
 
-  /* ============================================================
-     PAINEL DE PROPRIEDADES (não sobrepõe a barra de baixo!)
-  ============================================================ */
   #props {
     position:fixed; right:12px; top:88px; width:290px;
-    bottom: 110px;  /* <-- deixa espaço pra barra de baixo */
+    bottom: 110px;
     background:rgba(30,32,38,0.96); backdrop-filter: blur(12px);
     border:1px solid #3a3f47; border-radius:18px;
     padding:12px; z-index:25; color:#cfd2d8; font-size:13px;
@@ -386,17 +242,9 @@
     margin-bottom: 10px; padding-bottom: 10px;
     border-bottom: 1px solid #3a3f47;
   }
-  #propsHeader h4 {
-    margin:0; font-size:14px; color:#fff; font-weight: 700;
-    display:flex; align-items:center; gap:8px;
-  }
-  #propsHeader h4 .badgeId {
-    background:#5865f2; color:#fff; font-size:10px;
-    padding:3px 10px; border-radius:10px; font-weight:700;
-  }
-  #propsHeader h4 .badgeId.multi {
-    background: linear-gradient(135deg, #00bcd4, #0097a7);
-  }
+  #propsHeader h4 { margin:0; font-size:14px; color:#fff; font-weight: 700; display:flex; align-items:center; gap:8px; }
+  #propsHeader h4 .badgeId { background:#5865f2; color:#fff; font-size:10px; padding:3px 10px; border-radius:10px; font-weight:700; }
+  #propsHeader h4 .badgeId.multi { background: linear-gradient(135deg, #00bcd4, #0097a7); }
 
   .propSection {
     border-radius: 12px; padding: 10px; margin-bottom: 8px;
@@ -407,7 +255,6 @@
   .propSection.size { border-color: #3ba55d; background: linear-gradient(135deg, rgba(59,165,93,0.08), rgba(59,165,93,0.02)); }
   .propSection.color { border-color: #a259ff; background: linear-gradient(135deg, rgba(162,89,255,0.08), rgba(162,89,255,0.02)); }
   .propSection.multi { border-color: #00bcd4; background: linear-gradient(135deg, rgba(0,188,212,0.1), rgba(0,188,212,0.02)); }
-
   .propHeader {
     display: flex; align-items: center; gap: 8px;
     font-size: 11px; font-weight: 700;
@@ -420,75 +267,30 @@
   .propSection.size .propHeader { color: #3ba55d; }
   .propSection.color .propHeader { color: #a259ff; }
   .propSection.multi .propHeader { color: #00bcd4; }
-  .propHeader .ico { font-size: 14px; }
 
   .axisRow { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
-  .axisRow .axisTag {
-    width: 20px; height: 20px; border-radius: 5px;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 10px; color: #fff; flex-shrink: 0;
-  }
+  .axisRow .axisTag { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; color: #fff; flex-shrink: 0; }
   .axisRow.x .axisTag { background: #e74c3c; }
   .axisRow.y .axisTag { background: #3ba55d; }
   .axisRow.z .axisTag { background: #3498db; }
-
-  .stepBtn {
-    width: 26px; height: 26px; border-radius: 7px;
-    background: #3a3f47; border: none; color: #cfd2d8;
-    cursor: pointer; font-size: 16px; font-weight: 700;
-    display:flex; align-items:center; justify-content:center;
-    transition: all .12s; flex-shrink: 0; user-select: none;
-  }
+  .stepBtn { width: 26px; height: 26px; border-radius: 7px; background: #3a3f47; border: none; color: #cfd2d8; cursor: pointer; font-size: 16px; font-weight: 700; display:flex; align-items:center; justify-content:center; transition: all .12s; flex-shrink: 0; user-select: none; }
   .stepBtn:hover { background: #5865f2; color:#fff; }
   .stepBtn:active { transform: scale(0.9); }
-
-  .axisRow input[type=number] {
-    flex:1; background:#1e2026; border:1px solid #3a3f47; color:#fff;
-    padding:5px 8px; border-radius:6px; font-size:12px; width:0;
-    outline:none; transition: border-color .15s;
-    text-align: center; font-weight: 600;
-  }
+  .axisRow input[type=number] { flex:1; background:#1e2026; border:1px solid #3a3f47; color:#fff; padding:5px 8px; border-radius:6px; font-size:12px; width:0; outline:none; transition: border-color .15s; text-align: center; font-weight: 600; }
   .axisRow input[type=number]:focus { border-color:#5865f2; }
-
   .sliderRow { margin-top: 6px; display: flex; align-items: center; gap: 8px; }
-  .sliderRow input[type=range] {
-    flex:1; -webkit-appearance: none; appearance: none;
-    height: 6px; border-radius: 3px; outline: none;
-    background: #1e2026; cursor: pointer;
-  }
-  .propSection.rot .sliderRow input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #e67e22; cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(230,126,34,0.25);
-  }
-  .propSection.size .sliderRow input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #3ba55d; cursor: pointer;
-    box-shadow: 0 0 0 3px rgba(59,165,93,0.25);
-  }
-  .sliderRow .lblAxis {
-    width: 20px; text-align: center;
-    font-weight: 900; font-size: 10px; color: #8a8f98;
-  }
+  .sliderRow input[type=range] { flex:1; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; outline: none; background: #1e2026; cursor: pointer; }
+  .propSection.rot .sliderRow input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #e67e22; cursor: pointer; box-shadow: 0 0 0 3px rgba(230,126,34,0.25); }
+  .propSection.size .sliderRow input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #3ba55d; cursor: pointer; box-shadow: 0 0 0 3px rgba(59,165,93,0.25); }
+  .sliderRow .lblAxis { width: 20px; text-align: center; font-weight: 900; font-size: 10px; color: #8a8f98; }
 
   .colorPickerRow { display: flex; gap: 8px; align-items: center; }
-  .colorPickerRow input[type=color] {
-    width: 50px; height: 44px;
-    background:none; border: 2px solid #3a3f47;
-    border-radius: 10px; cursor:pointer; padding: 2px;
-    transition: border-color .15s;
-  }
+  .colorPickerRow input[type=color] { width: 50px; height: 44px; background:none; border: 2px solid #3a3f47; border-radius: 10px; cursor:pointer; padding: 2px; transition: border-color .15s; }
   .colorPickerRow input[type=color]:hover { border-color: #a259ff; }
   .swatches { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; flex: 1; }
-  .swatch {
-    aspect-ratio: 1; border-radius: 6px; cursor: pointer;
-    border: 2px solid transparent; transition: all .15s;
-  }
+  .swatch { aspect-ratio: 1; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: all .15s; }
   .swatch:hover { transform: scale(1.15); border-color: #fff; }
 
-  /* MODAIS */
   .modal {
     position:fixed; inset:0; z-index:200;
     background: rgba(10,12,16,0.85); backdrop-filter: blur(8px);
@@ -516,18 +318,13 @@
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  .modalClose {
-    background:#3a3f47; border:none; color:#cfd2d8;
-    width:44px; height:44px; border-radius:12px;
-    cursor:pointer; font-size:22px; transition: all .15s;
-  }
+  .modalClose { background:#3a3f47; border:none; color:#cfd2d8; width:44px; height:44px; border-radius:12px; cursor:pointer; font-size:22px; transition: all .15s; }
   .modalClose:hover { background:#a13a3a; color:#fff; }
   .modalBody { padding: 24px 28px 32px; }
 
   .tabRow { display: flex; gap: 8px; margin-bottom: 16px; }
   .tabBtn {
-    flex: 1;
-    background: #2b2f36; border: 2px solid #3a3f47; color: #cfd2d8;
+    flex: 1; background: #2b2f36; border: 2px solid #3a3f47; color: #cfd2d8;
     padding: 14px; border-radius: 12px; cursor: pointer;
     font-size: 14px; font-weight: 700;
     display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -537,351 +334,156 @@
   .tabBtn.active { background: #5865f2; border-color: #5865f2; color: #fff; }
 
   .codeArea {
-    width:100%; background:#0f1115;
-    border:1px solid #3a3f47; border-radius:12px;
-    color:#7fffd4; padding:16px;
-    font-family: 'Courier New', monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    resize: vertical;
-    min-height: 140px;
-    max-height: 320px;
-    outline:none;
-    word-break: break-all;
-    transition: border-color .15s;
+    width:100%; background:#0f1115; border:1px solid #3a3f47; border-radius:12px;
+    color:#7fffd4; padding:16px; font-family: 'Courier New', monospace;
+    font-size: 12px; line-height: 1.5; resize: vertical;
+    min-height: 140px; max-height: 320px; outline:none;
+    word-break: break-all; transition: border-color .15s;
   }
   .codeArea:focus { border-color:#5865f2; }
 
   .bigActionBtn {
-    flex: 1; padding: 14px;
-    border-radius: 12px; border: none; cursor: pointer;
+    flex: 1; padding: 14px; border-radius: 12px; border: none; cursor: pointer;
     font-size: 14px; font-weight: 700;
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    transition: all .15s;
-    color: #fff;
+    transition: all .15s; color: #fff;
   }
   .bigActionBtn:hover { transform: translateY(-2px); }
-  .bigActionBtn.blue   { background:#5865f2; }
+  .bigActionBtn.blue { background:#5865f2; }
   .bigActionBtn.blue:hover { background:#6b78ff; }
-  .bigActionBtn.green  { background:#3ba55d; }
+  .bigActionBtn.green { background:#3ba55d; }
   .bigActionBtn.green:hover { background:#4bc46d; }
-  .bigActionBtn.red    { background:#a13a3a; }
+  .bigActionBtn.red { background:#a13a3a; }
   .bigActionBtn.red:hover { background:#c94a4a; }
-  .bigActionBtn.gray   { background:#3a3f47; }
+  .bigActionBtn.gray { background:#3a3f47; }
   .bigActionBtn.gray:hover { background:#4a4f57; }
 
-  .codeStats {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-    margin-top: 14px;
-  }
-  .statCard {
-    background:#24272e; border:1px solid #3a3f47;
-    border-radius:12px; padding:14px; text-align:center;
-  }
-  .statCard .n {
-    font-size:24px; font-weight:700; color:#5865f2;
-    margin-bottom:4px;
-  }
-  .statCard .lbl {
-    font-size:11px; text-transform:uppercase; letter-spacing:1px;
-    color:#8a8f98;
-  }
+  .codeStats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .statCard { background:#24272e; border:1px solid #3a3f47; border-radius:12px; padding:14px; text-align:center; }
+  .statCard .n { font-size:24px; font-weight:700; color:#5865f2; margin-bottom:4px; }
+  .statCard .lbl { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:#8a8f98; }
 
   .helpSection { margin-bottom: 28px; }
-  .helpSection h2 {
-    font-size: 20px; color:#7fffd4;
-    margin: 0 0 16px 0; display: flex; align-items: center; gap: 10px;
-    padding-bottom: 10px; border-bottom: 1px dashed #3a3f47;
-  }
-  .helpStep {
-    display: flex; gap: 16px; align-items: center;
-    background: #24272e; border: 1px solid #3a3f47;
-    border-radius: 14px; padding: 16px;
-    margin: 10px 0;
-  }
-  .helpStep .num {
-    width: 40px; height: 40px; border-radius: 12px;
-    background: linear-gradient(135deg, #5865f2, #7c3aed);
-    color: #fff; font-weight: 700; font-size: 18px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
+  .helpSection h2 { font-size: 20px; color:#7fffd4; margin: 0 0 16px 0; display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1px dashed #3a3f47; }
+  .helpStep { display: flex; gap: 16px; align-items: center; background: #24272e; border: 1px solid #3a3f47; border-radius: 14px; padding: 16px; margin: 10px 0; }
+  .helpStep .num { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #5865f2, #7c3aed); color: #fff; font-weight: 700; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .helpStep .txt { font-size: 15px; color: #cfd2d8; line-height: 1.5; }
   .helpStep .txt b { color: #7fffd4; }
-  .helpCard {
-    background: #24272e; border: 2px solid #3a3f47;
-    border-radius: 14px; padding: 14px 18px;
-    margin: 8px 0; display: flex; align-items: center; gap: 12px;
-  }
+  .helpCard { background: #24272e; border: 2px solid #3a3f47; border-radius: 14px; padding: 14px 18px; margin: 8px 0; display: flex; align-items: center; gap: 12px; }
   .helpCard .bigEmoji { font-size: 28px; flex-shrink: 0; }
   .helpCard .info { flex: 1; }
   .helpCard .info b { color: #fff; font-size: 14px; display: block; margin-bottom: 2px; }
   .helpCard .info small { color: #8a8f98; font-size: 12px; line-height: 1.4; }
   .helpGrid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   @media (max-width: 700px) { .helpGrid2 { grid-template-columns: 1fr; } }
-  .helpTip {
-    background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(127,255,212,0.08));
-    border-left: 4px solid #5865f2;
-    padding: 12px 16px; border-radius: 10px;
-    margin: 12px 0; font-size: 13px; color: #cfd2d8; line-height: 1.6;
-  }
+  .helpTip { background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(127,255,212,0.08)); border-left: 4px solid #5865f2; padding: 12px 16px; border-radius: 10px; margin: 12px 0; font-size: 13px; color: #cfd2d8; line-height: 1.6; }
   .helpTip b { color: #7fffd4; }
 
   .tooltip {
-    position: fixed; background: #1a1c20;
-    color: #fff; padding: 10px 14px; border-radius: 10px;
+    position: fixed; background: #1a1c20; color: #fff;
+    padding: 10px 14px; border-radius: 10px;
     font-size: 13px; z-index: 500; pointer-events: none;
     border: 1px solid #5865f2;
     box-shadow: 0 6px 24px rgba(0,0,0,0.7);
     opacity: 0; transition: opacity .15s;
-    max-width: 280px; line-height: 1.5;
-    font-weight: 600;
+    max-width: 280px; line-height: 1.5; font-weight: 600;
   }
   .tooltip.show { opacity: 1; }
 </style>
 </head>
 <body class="tool-select">
 
-<!-- ============================================================
-     CANTO SUPERIOR ESQUERDO
-============================================================ -->
 <div id="topLeftControls">
-  <button class="floatBtn help pulse" id="btnHelp" title="Como usar">
-    <span>❓</span>
-    <span class="label">Ajuda</span>
-  </button>
-  <button class="floatBtn save" id="btnSave" title="Salvar / Carregar">
-    <span>💾</span>
-    <span class="label">Salvar</span>
-  </button>
-  <button class="floatBtn shadows" id="btnShadows" title="Ligar/desligar sombras">
-    <span>✨</span>
-    <span class="label">Sombras</span>
-  </button>
-  <button class="floatBtn clear" id="btnClearAll" title="Apagar tudo">
-    <span>🗑️</span>
-    <span class="label">Apagar Tudo</span>
-  </button>
+  <button class="floatBtn help pulse" id="btnHelp" title="Como usar"><span>❓</span><span class="label">Ajuda</span></button>
+  <button class="floatBtn save" id="btnSave" title="Salvar / Carregar"><span>💾</span><span class="label">Salvar</span></button>
+  <button class="floatBtn shadows" id="btnShadows" title="Ligar/desligar sombras"><span>✨</span><span class="label">Sombras</span></button>
+  <button class="floatBtn clear" id="btnClearAll" title="Apagar tudo"><span>🗑️</span><span class="label">Apagar Tudo</span></button>
 </div>
 
-<!-- ============================================================
-     FPS (canto superior direito)
-============================================================ -->
 <div id="fpsBox">
   <div class="line"><span class="lbl">FPS</span><span id="fpsValue" class="fpsGood">60</span></div>
   <div class="line"><span class="lbl">Blocos</span><span id="blocksValue">0</span></div>
   <div class="line"><span class="lbl">Draws</span><span id="drawsValue">0</span></div>
 </div>
 
-<!-- ============================================================
-     BARRA DE FORMAS
-============================================================ -->
 <div id="shapeBar">
   <span class="barLabel">🧱 Formas</span>
-  <div class="shapeCard active" data-shape="box" title="Cubo">
-    <div class="shapeIcon"><div class="icoCube"></div></div>
-    <div class="shapeName">Cubo</div>
-  </div>
-  <div class="shapeCard" data-shape="sphere" title="Bola">
-    <div class="shapeIcon"><div class="icoSphere"></div></div>
-    <div class="shapeName">Bola</div>
-  </div>
-  <div class="shapeCard" data-shape="triangle" title="Triângulo">
-    <div class="shapeIcon"><div class="icoTriangle"></div></div>
-    <div class="shapeName">Triângulo</div>
-  </div>
-  <div class="shapeCard" data-shape="cylinder" title="Cilindro">
-    <div class="shapeIcon"><div class="icoCylinder"></div></div>
-    <div class="shapeName">Cilindro</div>
-  </div>
-  <div class="shapeCard" data-shape="cone" title="Cone">
-    <div class="shapeIcon"><div class="icoCone"></div></div>
-    <div class="shapeName">Cone</div>
-  </div>
-  <div class="shapeCard" data-shape="wedge" title="Rampa">
-    <div class="shapeIcon"><div class="icoWedge"></div></div>
-    <div class="shapeName">Rampa</div>
-  </div>
+  <div class="shapeCard active" data-shape="box" title="Cubo"><div class="shapeIcon"><div class="icoCube"></div></div><div class="shapeName">Cubo</div></div>
+  <div class="shapeCard" data-shape="sphere" title="Bola"><div class="shapeIcon"><div class="icoSphere"></div></div><div class="shapeName">Bola</div></div>
+  <div class="shapeCard" data-shape="triangle" title="Triângulo"><div class="shapeIcon"><div class="icoTriangle"></div></div><div class="shapeName">Triângulo</div></div>
+  <div class="shapeCard" data-shape="cylinder" title="Cilindro"><div class="shapeIcon"><div class="icoCylinder"></div></div><div class="shapeName">Cilindro</div></div>
+  <div class="shapeCard" data-shape="cone" title="Cone"><div class="shapeIcon"><div class="icoCone"></div></div><div class="shapeName">Cone</div></div>
+  <div class="shapeCard" data-shape="wedge" title="Rampa"><div class="shapeIcon"><div class="icoWedge"></div></div><div class="shapeName">Rampa</div></div>
 </div>
 
-<!-- ============================================================
-     BANNER MODO ÁREA
-============================================================ -->
 <div id="areaModeBanner">
   <span class="emoji">🟦</span>
   <span>Arraste o mouse no chão pra selecionar vários blocos!</span>
 </div>
 
-<!-- ============================================================
-     BARRA DE FERRAMENTAS
-============================================================ -->
 <div id="toolBar">
   <span class="barLabel">🛠️</span>
-  <div class="toolCard active" data-tool="select" title="Selecionar">
-    <div class="toolIcon">🖱️</div>
-    <div class="toolName">Selecionar</div>
-  </div>
-  <div class="toolCard" data-tool="move" title="Mover">
-    <div class="toolIcon">✥</div>
-    <div class="toolName">Mover</div>
-  </div>
-  <div class="toolCard" data-tool="rotate" title="Girar">
-    <div class="toolIcon">⟳</div>
-    <div class="toolName">Girar</div>
-  </div>
-  <div class="toolCard" data-tool="scale" title="Tamanho">
-    <div class="toolIcon">⤢</div>
-    <div class="toolName">Tamanho</div>
-  </div>
-  <div class="toolCard" data-tool="color" title="Pintar">
-    <div class="toolIcon">🎨</div>
-    <div class="toolName">Pintar</div>
-  </div>
-
+  <div class="toolCard active" data-tool="select" title="Selecionar"><div class="toolIcon">🖱️</div><div class="toolName">Selecionar</div></div>
+  <div class="toolCard" data-tool="move" title="Mover"><div class="toolIcon">✥</div><div class="toolName">Mover</div></div>
+  <div class="toolCard" data-tool="rotate" title="Girar"><div class="toolIcon">⟳</div><div class="toolName">Girar</div></div>
+  <div class="toolCard" data-tool="scale" title="Tamanho"><div class="toolIcon">⤢</div><div class="toolName">Tamanho</div></div>
+  <div class="toolCard" data-tool="color" title="Pintar"><div class="toolIcon">🎨</div><div class="toolName">Pintar</div></div>
   <div class="barDivider"></div>
-
-  <div class="toolCard areaMode" id="btnAreaMode" title="Selecionar vários blocos">
-    <div class="toolIcon">🟦</div>
-    <div class="toolName">Seleção</div>
-  </div>
-
+  <div class="toolCard areaMode" id="btnAreaMode" title="Selecionar vários blocos"><div class="toolIcon">🟦</div><div class="toolName">Seleção</div></div>
   <div class="barDivider"></div>
-
-  <div class="actionBtn" id="btnUndo" title="Desfazer">
-    <div class="toolIcon">↶</div>
-    <div class="toolName">Desfazer</div>
-  </div>
-  <div class="actionBtn" id="btnRedo" title="Refazer">
-    <div class="toolIcon">↷</div>
-    <div class="toolName">Refazer</div>
-  </div>
-  <div class="actionBtn" id="btnDuplicate" title="Duplicar">
-    <div class="toolIcon">⧉</div>
-    <div class="toolName">Duplicar</div>
-  </div>
-  <div class="actionBtn" id="btnCopy" title="Copiar">
-    <div class="toolIcon">📋</div>
-    <div class="toolName">Copiar</div>
-  </div>
-  <div class="actionBtn" id="btnPaste" title="Colar">
-    <div class="toolIcon">📥</div>
-    <div class="toolName">Colar</div>
-  </div>
-  <div class="actionBtn danger" id="btnDelete" title="Apagar">
-    <div class="toolIcon">🗑️</div>
-    <div class="toolName">Apagar</div>
-  </div>
+  <div class="actionBtn" id="btnUndo" title="Desfazer"><div class="toolIcon">↶</div><div class="toolName">Desfazer</div></div>
+  <div class="actionBtn" id="btnRedo" title="Refazer"><div class="toolIcon">↷</div><div class="toolName">Refazer</div></div>
+  <div class="actionBtn" id="btnDuplicate" title="Duplicar"><div class="toolIcon">⧉</div><div class="toolName">Duplicar</div></div>
+  <div class="actionBtn" id="btnCopy" title="Copiar"><div class="toolIcon">📋</div><div class="toolName">Copiar</div></div>
+  <div class="actionBtn" id="btnPaste" title="Colar"><div class="toolIcon">📥</div><div class="toolName">Colar</div></div>
+  <div class="actionBtn danger" id="btnDelete" title="Apagar"><div class="toolIcon">🗑️</div><div class="toolName">Apagar</div></div>
 </div>
 
-<!-- ============================================================
-     LEMBRETE DE CÂMERA
-============================================================ -->
 <div id="cameraHint">
   <div class="title">📷 Como olhar</div>
-  <div class="row">
-    <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span>
-    <span class="text">voar</span>
-  </div>
+  <div class="row"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="text">voar</span></div>
   <div class="row"><span class="key">Q</span><span class="key">E</span><span class="text">subir/descer</span></div>
   <div class="row"><span class="key">🖱️➡️</span><span class="text">girar</span></div>
   <div class="row"><span class="key">🎡</span><span class="text">zoom</span></div>
 </div>
 
-<!-- ============================================================
-     PAINEL DE PROPRIEDADES
-============================================================ -->
 <div id="props" class="hidden">
   <div id="propsHeader">
     <h4>✏️ Editando <span class="badgeId" id="propName">—</span></h4>
   </div>
-
   <div class="propSection multi" id="multiSection" style="display:none;">
-    <div class="propHeader"><span class="ico">🟦</span><span>Vários blocos</span></div>
+    <div class="propHeader"><span>🟦</span><span>Vários blocos</span></div>
     <div style="text-align:center; padding: 6px 0;">
       <div style="font-size: 28px; font-weight: 900; color: #00bcd4; line-height: 1;" id="multiCount">0</div>
-      <div style="font-size: 11px; color: #8a8f98; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">
-        blocos selecionados
-      </div>
-    </div>
-    <div style="font-size: 11px; color: #a8adb8; line-height: 1.5; text-align: center; margin-top: 8px;">
-      Use <b style="color:#fff;">Duplicar</b>, <b style="color:#fff;">Copiar</b> ou <b style="color:#fff;">Apagar</b> em baixo.
+      <div style="font-size: 11px; color: #8a8f98; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">blocos selecionados</div>
     </div>
   </div>
-
   <div class="propSection pos">
-    <div class="propHeader"><span class="ico">📍</span><span>Posição</span></div>
-    <div class="axisRow x">
-      <div class="axisTag">X</div>
-      <button class="stepBtn" data-step="px" data-dir="-1">−</button>
-      <input type="number" step="0.1" data-p="px">
-      <button class="stepBtn" data-step="px" data-dir="1">+</button>
-    </div>
-    <div class="axisRow y">
-      <div class="axisTag">Y</div>
-      <button class="stepBtn" data-step="py" data-dir="-1">−</button>
-      <input type="number" step="0.1" data-p="py">
-      <button class="stepBtn" data-step="py" data-dir="1">+</button>
-    </div>
-    <div class="axisRow z">
-      <div class="axisTag">Z</div>
-      <button class="stepBtn" data-step="pz" data-dir="-1">−</button>
-      <input type="number" step="0.1" data-p="pz">
-      <button class="stepBtn" data-step="pz" data-dir="1">+</button>
-    </div>
+    <div class="propHeader"><span>📍</span><span>Posição</span></div>
+    <div class="axisRow x"><div class="axisTag">X</div><button class="stepBtn" data-step="px" data-dir="-1">−</button><input type="number" step="0.1" data-p="px"><button class="stepBtn" data-step="px" data-dir="1">+</button></div>
+    <div class="axisRow y"><div class="axisTag">Y</div><button class="stepBtn" data-step="py" data-dir="-1">−</button><input type="number" step="0.1" data-p="py"><button class="stepBtn" data-step="py" data-dir="1">+</button></div>
+    <div class="axisRow z"><div class="axisTag">Z</div><button class="stepBtn" data-step="pz" data-dir="-1">−</button><input type="number" step="0.1" data-p="pz"><button class="stepBtn" data-step="pz" data-dir="1">+</button></div>
   </div>
-
   <div class="propSection rot">
-    <div class="propHeader"><span class="ico">🔄</span><span>Rotação</span></div>
-    <div class="axisRow x">
-      <div class="axisTag">X</div>
-      <button class="stepBtn" data-step="rx" data-dir="-15">−</button>
-      <input type="number" step="15" data-p="rx">
-      <button class="stepBtn" data-step="rx" data-dir="15">+</button>
-    </div>
+    <div class="propHeader"><span>🔄</span><span>Rotação</span></div>
+    <div class="axisRow x"><div class="axisTag">X</div><button class="stepBtn" data-step="rx" data-dir="-15">−</button><input type="number" step="15" data-p="rx"><button class="stepBtn" data-step="rx" data-dir="15">+</button></div>
     <div class="sliderRow"><span class="lblAxis">X</span><input type="range" data-s="rx" min="-180" max="180" step="1"></div>
-    <div class="axisRow y" style="margin-top:8px;">
-      <div class="axisTag">Y</div>
-      <button class="stepBtn" data-step="ry" data-dir="-15">−</button>
-      <input type="number" step="15" data-p="ry">
-      <button class="stepBtn" data-step="ry" data-dir="15">+</button>
-    </div>
+    <div class="axisRow y" style="margin-top:8px;"><div class="axisTag">Y</div><button class="stepBtn" data-step="ry" data-dir="-15">−</button><input type="number" step="15" data-p="ry"><button class="stepBtn" data-step="ry" data-dir="15">+</button></div>
     <div class="sliderRow"><span class="lblAxis">Y</span><input type="range" data-s="ry" min="-180" max="180" step="1"></div>
-    <div class="axisRow z" style="margin-top:8px;">
-      <div class="axisTag">Z</div>
-      <button class="stepBtn" data-step="rz" data-dir="-15">−</button>
-      <input type="number" step="15" data-p="rz">
-      <button class="stepBtn" data-step="rz" data-dir="15">+</button>
-    </div>
+    <div class="axisRow z" style="margin-top:8px;"><div class="axisTag">Z</div><button class="stepBtn" data-step="rz" data-dir="-15">−</button><input type="number" step="15" data-p="rz"><button class="stepBtn" data-step="rz" data-dir="15">+</button></div>
     <div class="sliderRow"><span class="lblAxis">Z</span><input type="range" data-s="rz" min="-180" max="180" step="1"></div>
   </div>
-
   <div class="propSection size">
-    <div class="propHeader"><span class="ico">📏</span><span>Tamanho</span></div>
-    <div class="axisRow x">
-      <div class="axisTag">X</div>
-      <button class="stepBtn" data-step="sx" data-dir="-0.1">−</button>
-      <input type="number" step="0.1" data-p="sx">
-      <button class="stepBtn" data-step="sx" data-dir="0.1">+</button>
-    </div>
+    <div class="propHeader"><span>📏</span><span>Tamanho</span></div>
+    <div class="axisRow x"><div class="axisTag">X</div><button class="stepBtn" data-step="sx" data-dir="-0.1">−</button><input type="number" step="0.1" data-p="sx"><button class="stepBtn" data-step="sx" data-dir="0.1">+</button></div>
     <div class="sliderRow"><span class="lblAxis">X</span><input type="range" data-s="sx" min="0.1" max="10" step="0.1"></div>
-    <div class="axisRow y" style="margin-top:8px;">
-      <div class="axisTag">Y</div>
-      <button class="stepBtn" data-step="sy" data-dir="-0.1">−</button>
-      <input type="number" step="0.1" data-p="sy">
-      <button class="stepBtn" data-step="sy" data-dir="0.1">+</button>
-    </div>
+    <div class="axisRow y" style="margin-top:8px;"><div class="axisTag">Y</div><button class="stepBtn" data-step="sy" data-dir="-0.1">−</button><input type="number" step="0.1" data-p="sy"><button class="stepBtn" data-step="sy" data-dir="0.1">+</button></div>
     <div class="sliderRow"><span class="lblAxis">Y</span><input type="range" data-s="sy" min="0.1" max="10" step="0.1"></div>
-    <div class="axisRow z" style="margin-top:8px;">
-      <div class="axisTag">Z</div>
-      <button class="stepBtn" data-step="sz" data-dir="-0.1">−</button>
-      <input type="number" step="0.1" data-p="sz">
-      <button class="stepBtn" data-step="sz" data-dir="0.1">+</button>
-    </div>
+    <div class="axisRow z" style="margin-top:8px;"><div class="axisTag">Z</div><button class="stepBtn" data-step="sz" data-dir="-0.1">−</button><input type="number" step="0.1" data-p="sz"><button class="stepBtn" data-step="sz" data-dir="0.1">+</button></div>
     <div class="sliderRow"><span class="lblAxis">Z</span><input type="range" data-s="sz" min="0.1" max="10" step="0.1"></div>
   </div>
-
   <div class="propSection color">
-    <div class="propHeader"><span class="ico">🎨</span><span>Cor</span></div>
+    <div class="propHeader"><span>🎨</span><span>Cor</span></div>
     <div class="colorPickerRow">
       <input type="color" data-p="color">
       <div class="swatches">
@@ -905,116 +507,71 @@
 <div id="hint"><span class="emoji"></span><span class="text"></span></div>
 <div class="tooltip" id="tooltip"></div>
 
-<!-- ============================================================
-     MODAIS
-============================================================ -->
 <div id="helpModal" class="modal">
   <div class="modalBox">
-    <div class="modalHeader">
-      <h1>❓ Como usar o jogo</h1>
-      <button class="modalClose" data-close="helpModal">✕</button>
-    </div>
+    <div class="modalHeader"><h1>❓ Como usar</h1><button class="modalClose" data-close="helpModal">✕</button></div>
     <div class="modalBody">
-
       <div class="helpSection">
-        <h2>🎯 O básico em 3 passos</h2>
+        <h2>🎯 O básico</h2>
         <div class="helpStep"><div class="num">1</div><div class="txt">Escolha uma <b>forma</b> lá em cima</div></div>
-        <div class="helpStep"><div class="num">2</div><div class="txt">Clique <b>no chão</b> pra criar o bloco</div></div>
-        <div class="helpStep"><div class="num">3</div><div class="txt">Clique <b>no bloco</b> pra escolher ele</div></div>
+        <div class="helpStep"><div class="num">2</div><div class="txt">Clique <b>no chão</b> pra criar</div></div>
+        <div class="helpStep"><div class="num">3</div><div class="txt">Clique <b>no bloco</b> pra escolher</div></div>
       </div>
-
       <div class="helpSection">
-        <h2>🟦 Selecionar vários blocos</h2>
-        <div class="helpStep"><div class="num">1</div><div class="txt">Clique em <b>🟦 Seleção</b> na barra de baixo</div></div>
-        <div class="helpStep"><div class="num">2</div><div class="txt">Clique no chão e <b>arraste</b> — aparece um retângulo azul</div></div>
-        <div class="helpStep"><div class="num">3</div><div class="txt">Solte o mouse. Tudo dentro ficou selecionado!</div></div>
-        <div class="helpStep"><div class="num">4</div><div class="txt">Agora <b>Apagar</b>, <b>Duplicar</b> ou <b>Copiar</b> valem pra todos</div></div>
+        <h2>🟦 Selecionar vários</h2>
+        <div class="helpStep"><div class="num">1</div><div class="txt">Clique em <b>🟦 Seleção</b></div></div>
+        <div class="helpStep"><div class="num">2</div><div class="txt">Arraste um retângulo no chão</div></div>
+        <div class="helpStep"><div class="num">3</div><div class="txt">Solte — tudo dentro ficou selecionado</div></div>
       </div>
-
       <div class="helpSection">
-        <h2>✨ Sombras</h2>
-        <p>As sombras deixam o jogo mais bonito mas <b>pesado</b>. Elas ficam desligadas por padrão. Clique em <b>✨ Sombras</b> no canto pra ligar.</p>
-        <div class="helpTip">
-          <b>Dica:</b> se o jogo tiver travando, desliga as sombras de novo.
-        </div>
-      </div>
-
-      <div class="helpSection">
-        <h2>🛠️ As 5 ferramentas</h2>
-        <div class="helpCard"><div class="bigEmoji">🖱️</div><div class="info"><b>Selecionar</b><small>Clique num bloco</small></div></div>
-        <div class="helpCard"><div class="bigEmoji">✥</div><div class="info"><b>Mover</b><small>Arraste o bloco</small></div></div>
-        <div class="helpCard"><div class="bigEmoji">⟳</div><div class="info"><b>Girar</b><small>Arraste em círculo</small></div></div>
-        <div class="helpCard"><div class="bigEmoji">⤢</div><div class="info"><b>Tamanho</b><small>Arraste pra fora/dentro</small></div></div>
-        <div class="helpCard"><div class="bigEmoji">🎨</div><div class="info"><b>Pintar</b><small>Clique e escolha a cor</small></div></div>
-      </div>
-
-      <div class="helpSection">
-        <h2>📷 Como olhar em volta</h2>
+        <h2>📷 Câmera</h2>
         <div class="helpGrid2">
           <div class="helpCard"><div class="bigEmoji">⌨️</div><div class="info"><b>W A S D</b><small>Voar</small></div></div>
-          <div class="helpCard"><div class="bigEmoji">Q / E</div><div class="info"><b>Subir e descer</b><small>Vertical</small></div></div>
-          <div class="helpCard"><div class="bigEmoji">🖱️➡️</div><div class="info"><b>Botão direito</b><small>Girar a câmera</small></div></div>
-          <div class="helpCard"><div class="bigEmoji">🎡</div><div class="info"><b>Roda do mouse</b><small>Zoom</small></div></div>
+          <div class="helpCard"><div class="bigEmoji">Q / E</div><div class="info"><b>Subir/Descer</b><small>Vertical</small></div></div>
+          <div class="helpCard"><div class="bigEmoji">🖱️</div><div class="info"><b>Botão direito</b><small>Girar</small></div></div>
+          <div class="helpCard"><div class="bigEmoji">🎡</div><div class="info"><b>Roda</b><small>Zoom</small></div></div>
         </div>
       </div>
-
       <div class="helpSection">
-        <h2>💾 Salvar e mandar pra um amigo</h2>
-        <p>Clique no botão verde <b>💾 Salvar</b>. Você recebe um código que pode copiar e colar.</p>
+        <h2>💾 Salvar</h2>
+        <p>Clique em <b>💾 Salvar</b>. O jogo agora usa um <b>dicionário automático</b> que deixa o código menor!</p>
       </div>
-
     </div>
   </div>
 </div>
 
 <div id="saveModal" class="modal">
   <div class="modalBox" style="max-width:720px;">
-    <div class="modalHeader">
-      <h1>💾 Salvar / Carregar</h1>
-      <button class="modalClose" data-close="saveModal">✕</button>
-    </div>
+    <div class="modalHeader"><h1>💾 Salvar / Carregar</h1><button class="modalClose" data-close="saveModal">✕</button></div>
     <div class="modalBody">
-
       <div class="tabRow">
         <button class="tabBtn active" id="tabExport">📤 Salvar</button>
         <button class="tabBtn" id="tabImport">📥 Carregar</button>
       </div>
-
       <div id="saveExportView">
         <p style="color:#a8adb8; font-size:14px; line-height:1.6; margin-top:0;">
-          Copie o código e guarde num lugar seguro — ou mande pra um amigo!
+          Copie o código e guarde num lugar seguro. Agora ele é <b>menor</b> graças ao dicionário automático!
         </p>
         <textarea class="codeArea" id="exportCode" readonly></textarea>
-
         <div class="codeStats">
-          <div class="statCard">
-            <div class="n" id="statBlocks">0</div>
-            <div class="lbl">Blocos no mapa</div>
-          </div>
-          <div class="statCard">
-            <div class="n" id="statSize">0 B</div>
-            <div class="lbl">Tamanho do código</div>
-          </div>
+          <div class="statCard"><div class="n" id="statBlocks">0</div><div class="lbl">Blocos no mapa</div></div>
+          <div class="statCard"><div class="n" id="statSize">0 B</div><div class="lbl">Tamanho do código</div></div>
         </div>
-
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
           <button class="bigActionBtn blue" id="btnCopyCode">📋 Copiar código</button>
           <button class="bigActionBtn green" id="btnShareCode">🔗 Copiar link</button>
         </div>
       </div>
-
       <div id="saveImportView" style="display:none">
         <p style="color:#a8adb8; font-size:14px; line-height:1.6; margin-top:0;">
-          Cole o código que alguém te mandou (começa com <code style="background:#0f1115; padding:2px 6px; border-radius:4px; color:#7fffd4;">MS3D:</code>).
+          Cole o código (aceita <code style="background:#0f1115;padding:2px 6px;border-radius:4px;color:#7fffd4;">MS3D:</code> e o novo <code style="background:#0f1115;padding:2px 6px;border-radius:4px;color:#7fffd4;">MS3D2:</code>).
         </p>
         <textarea class="codeArea" id="importCode" placeholder="Cole aqui o código..."></textarea>
-
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
           <button class="bigActionBtn green" id="btnDoImport">📥 Carregar mapa</button>
           <button class="bigActionBtn gray" id="btnPasteClipboard">📋 Colar</button>
         </div>
       </div>
-
     </div>
   </div>
 </div>
@@ -1053,9 +610,6 @@
 import * as THREE from 'three';
 import * as pako from 'pako';
 
-/* ============================================================
-   HELPERS
-============================================================ */
 function isTyping() {
   const el = document.activeElement;
   if (!el) return false;
@@ -1077,8 +631,8 @@ camera.position.set(10, 10, 10);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); // limita DPR pra economizar
-renderer.shadowMap.enabled = false; // SOMBRAS DESLIGADAS POR PADRÃO
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.shadowMap.enabled = false;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
@@ -1088,9 +642,6 @@ addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
 });
 
-/* ============================================================
-   LUZES
-============================================================ */
 scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.1));
 const sun = new THREE.DirectionalLight(0xffffff, 1.3);
 sun.position.set(20, 40, 15);
@@ -1099,9 +650,6 @@ sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left:-40, right:40, top:40, bottom:-40 });
 scene.add(sun);
 
-/* ============================================================
-   CHÃO + GRADE
-============================================================ */
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(500, 500),
   new THREE.MeshBasicMaterial({ visible: false })
@@ -1114,9 +662,6 @@ grid.material.transparent = true;
 grid.material.opacity = 0.6;
 scene.add(grid);
 
-/* ============================================================
-   CÂMERA (WASD + Q/E + mouse)
-============================================================ */
 const keys = {};
 addEventListener('keydown', e => { if (!isTyping()) keys[e.code] = true; });
 addEventListener('keyup',   e => keys[e.code] = false);
@@ -1138,7 +683,6 @@ function updateCamera(delta) {
     Math.cos(yaw) * Math.cos(pitch)
   );
   const right = new THREE.Vector3(-Math.cos(yaw), 0, Math.sin(yaw));
-
   const mv = new THREE.Vector3();
   if (keys['KeyW']) mv.add(fwd);
   if (keys['KeyS']) mv.sub(fwd);
@@ -1186,32 +730,18 @@ function makeGeometry(shape) {
   return new THREE.BoxGeometry(1,1,1);
 }
 
-/* ============================================================
-   INSTANCED MESH POR (forma + cor)
-   ------------------------------------------------------------
-   Antes: cada bloco = 1 mesh + 1 material → 500 blocos = 500 draws
-   Agora: blocos com mesma forma+cor ficam em 1 InstancedMesh
-          → 500 blocos com 3 cores = 3 draws
-============================================================ */
 const SHAPES = ['box','sphere','triangle','cylinder','cone','wedge'];
-const instancedMeshes = {}; // chave = "shape|colorHex" → InstancedMesh
+const instancedMeshes = {};
 const MAX_INSTANCES_PER_BATCH = 2000;
 
-// Guarda a "lista lógica" de blocos (o que o jogador vê)
-// Cada entrada: { id, shape, position, rotation, scale, color }
 const blocks = [];
 let objId = 0;
 
 function getOrCreateInstancedMesh(shape, colorHex) {
   const key = shape + '|' + colorHex.toString(16);
   if (instancedMeshes[key]) return instancedMeshes[key];
-
   const geo = makeGeometry(shape);
-  const mat = new THREE.MeshStandardMaterial({
-    color: colorHex,
-    roughness: 0.55,
-    metalness: 0.08
-  });
+  const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.55, metalness: 0.08 });
   const im = new THREE.InstancedMesh(geo, mat, MAX_INSTANCES_PER_BATCH);
   im.count = 0;
   im.frustumCulled = false;
@@ -1230,11 +760,7 @@ const _pos = new THREE.Vector3();
 const _scl = new THREE.Vector3();
 
 function rebuildAllInstances() {
-  // Zera todos
-  for (const key in instancedMeshes) {
-    instancedMeshes[key].count = 0;
-  }
-  // Reconstrói baseado em `blocks`
+  for (const key in instancedMeshes) instancedMeshes[key].count = 0;
   blocks.forEach(b => {
     const im = getOrCreateInstancedMesh(b.shape, b.color);
     if (im.count >= MAX_INSTANCES_PER_BATCH) return;
@@ -1248,24 +774,12 @@ function rebuildAllInstances() {
     b._instanceKey = b.shape + '|' + b.color.toString(16);
     im.count++;
   });
-  // Atualiza matrizes
-  for (const key in instancedMeshes) {
-    instancedMeshes[key].instanceMatrix.needsUpdate = true;
-  }
+  for (const key in instancedMeshes) instancedMeshes[key].instanceMatrix.needsUpdate = true;
   updateHUD();
 }
 
-function rebuildOne(b) {
-  // Removido por simplicidade: rebuild completo é mais fácil e rápido o suficiente.
-  rebuildAllInstances();
-}
+function findBlockById(id) { return blocks.find(b => b.id === id); }
 
-// Índice rápido de blocos por id
-function findBlockById(id) {
-  return blocks.find(b => b.id === id);
-}
-
-// Cria bloco
 function createBlock(shape, pos, color = 0xa0a4ab, rotation, scale) {
   const b = {
     id: ++objId,
@@ -1279,13 +793,9 @@ function createBlock(shape, pos, color = 0xa0a4ab, rotation, scale) {
   return b;
 }
 
-// Remove bloco por id
 function removeBlockById(id) {
   const idx = blocks.findIndex(b => b.id === id);
-  if (idx >= 0) {
-    blocks.splice(idx, 1);
-    return true;
-  }
+  if (idx >= 0) { blocks.splice(idx, 1); return true; }
   return false;
 }
 
@@ -1296,18 +806,10 @@ function updateHUD() {
   document.getElementById('statBlocks').textContent = blocks.length;
 }
 
-/* ============================================================
-   SELEÇÃO
-============================================================ */
-let selectedIds = [];   // lista de IDs
-let primaryId = null;   // último selecionado
-
-function getSelectedBlocks() {
-  return selectedIds.map(findBlockById).filter(Boolean);
-}
-function getPrimaryBlock() {
-  return primaryId ? findBlockById(primaryId) : null;
-}
+let selectedIds = [];
+let primaryId = null;
+function getSelectedBlocks() { return selectedIds.map(findBlockById).filter(Boolean); }
+function getPrimaryBlock() { return primaryId ? findBlockById(primaryId) : null; }
 
 function setSelection(ids) {
   selectedIds = [...new Set(ids)];
@@ -1317,18 +819,13 @@ function setSelection(ids) {
 }
 
 function updateSelectionHighlight() {
-  // Limpa brilho
   for (const key in instancedMeshes) {
     const im = instancedMeshes[key];
     im.material.emissive.setHex(0x000000);
     im.material.emissiveIntensity = 0;
   }
-  // Aplica brilho em cada bloco selecionado (a instância tem a mesma cor na mesh toda)
-  // Solução: guardamos quais cores têm seleção e brilhamos a mesh inteira
   const selKeys = new Set();
-  getSelectedBlocks().forEach(b => {
-    selKeys.add(b.shape + '|' + b.color.toString(16));
-  });
+  getSelectedBlocks().forEach(b => selKeys.add(b.shape + '|' + b.color.toString(16)));
   selKeys.forEach(key => {
     const im = instancedMeshes[key];
     if (im) {
@@ -1338,9 +835,6 @@ function updateSelectionHighlight() {
   });
 }
 
-/* ============================================================
-   HINT
-============================================================ */
 const hintEl = document.getElementById('hint');
 let hintTimer = null;
 function showHint(emoji, text, duration = 1800) {
@@ -1350,30 +844,14 @@ function showHint(emoji, text, duration = 1800) {
   clearTimeout(hintTimer);
   hintTimer = setTimeout(() => hintEl.classList.remove('show'), duration);
 }
-function hideHint() {
-  hintEl.classList.remove('show');
-  clearTimeout(hintTimer);
-}
+function hideHint() { hintEl.classList.remove('show'); clearTimeout(hintTimer); }
 
-/* ============================================================
-   FERRAMENTAS
-============================================================ */
 let currentTool = 'select';
 let areaMode = false;
 
-const toolInfo = {
-  select: { emoji:'🖱️', name:'Selecionar' },
-  move:   { emoji:'✥', name:'Mover' },
-  rotate: { emoji:'⟳', name:'Girar' },
-  scale:  { emoji:'⤢', name:'Tamanho' },
-  color:  { emoji:'🎨', name:'Pintar' },
-};
-
 function setTool(t, silent=false) {
   currentTool = t;
-  document.querySelectorAll('.toolCard[data-tool]').forEach(b => {
-    b.classList.toggle('active', b.dataset.tool === t);
-  });
+  document.querySelectorAll('.toolCard[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === t));
   document.body.className = 'tool-' + t + (areaMode ? ' select-mode' : '');
   if (!silent) {
     const hints = {
@@ -1386,17 +864,10 @@ function setTool(t, silent=false) {
     showHint(hints[t][0], hints[t][1]);
   }
 }
+document.querySelectorAll('.toolCard[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
 
-document.querySelectorAll('.toolCard[data-tool]').forEach(b => {
-  b.onclick = () => setTool(b.dataset.tool);
-});
-
-/* ============================================================
-   MODO ÁREA
-============================================================ */
 const btnAreaMode = document.getElementById('btnAreaMode');
 const areaModeBanner = document.getElementById('areaModeBanner');
-
 function setAreaMode(on) {
   areaMode = on;
   btnAreaMode.classList.toggle('active', on);
@@ -1413,9 +884,6 @@ function setAreaMode(on) {
 }
 btnAreaMode.onclick = () => setAreaMode(!areaMode);
 
-/* ============================================================
-   RETÂNGULO DE SELEÇÃO
-============================================================ */
 let areaRectEl = null;
 function ensureAreaRect() {
   if (!areaRectEl) {
@@ -1423,7 +891,6 @@ function ensureAreaRect() {
     areaRectEl.style.position = 'fixed';
     areaRectEl.style.border = '2px solid #00e5ff';
     areaRectEl.style.background = 'rgba(0, 188, 212, 0.2)';
-    areaRectEl.style.boxShadow = '0 0 0 1px rgba(0,229,255,0.5), 0 0 20px rgba(0,188,212,0.5) inset';
     areaRectEl.style.borderRadius = '4px';
     areaRectEl.style.pointerEvents = 'none';
     areaRectEl.style.zIndex = '60';
@@ -1440,13 +907,8 @@ function updateAreaRect(x1, y1, x2, y2) {
   el.style.height = Math.abs(y2 - y1) + 'px';
   el.style.display = 'block';
 }
-function clearAreaRect() {
-  if (areaRectEl) areaRectEl.style.display = 'none';
-}
+function clearAreaRect() { if (areaRectEl) areaRectEl.style.display = 'none'; }
 
-/* ============================================================
-   RAYCASTING — agora faz contra as instanced meshes
-============================================================ */
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 
@@ -1455,24 +917,18 @@ function ndcFrom(e) {
   ndc.y = -(e.clientY / innerHeight) * 2 + 1;
 }
 
-// Descobre qual bloco foi clicado: raycasta contra todas as instanced meshes
 function pickBlock(e) {
   ndcFrom(e);
   raycaster.setFromCamera(ndc, camera);
-
   const all = Object.values(instancedMeshes).filter(im => im.count > 0);
   const hits = raycaster.intersectObjects(all, false);
   if (!hits.length) return null;
-
   const hit = hits[0];
   const im = hit.object;
   const instanceId = hit.instanceId;
   if (instanceId === undefined) return null;
-
-  // Acha qual bloco corresponde a essa instância
   const key = im.userData.shape + '|' + im.userData.colorHex.toString(16);
-  const block = blocks.find(b => b._instanceKey === key && b._instanceIndex === instanceId);
-  return block || null;
+  return blocks.find(b => b._instanceKey === key && b._instanceIndex === instanceId) || null;
 }
 
 function hitGround(e) {
@@ -1487,7 +943,6 @@ function getBlocksInRect(x1, y1, x2, y2) {
   const maxX = Math.max(x1, x2);
   const minY = Math.min(y1, y2);
   const maxY = Math.max(y1, y2);
-
   const result = [];
   const wp = new THREE.Vector3();
   blocks.forEach(b => {
@@ -1495,16 +950,11 @@ function getBlocksInRect(x1, y1, x2, y2) {
     const screen = wp.clone().project(camera);
     const sx = (screen.x * 0.5 + 0.5) * innerWidth;
     const sy = (-screen.y * 0.5 + 0.5) * innerHeight;
-    if (sx >= minX && sx <= maxX && sy >= minY && sy <= maxY) {
-      result.push(b.id);
-    }
+    if (sx >= minX && sx <= maxX && sy >= minY && sy <= maxY) result.push(b.id);
   });
   return result;
 }
 
-/* ============================================================
-   MANIPULAÇÃO DIRETA
-============================================================ */
 let op = null;
 let pointerIsDown = false;
 const movePlane = new THREE.Plane();
@@ -1529,29 +979,18 @@ renderer.domElement.addEventListener('pointerdown', e => {
   if (pointerIsDown) forceRelease();
   pointerIsDown = true;
 
-  // MODO ÁREA
   if (areaMode) {
-    op = {
-      type: 'area-select',
-      startX: e.clientX, startY: e.clientY,
-      moved: false,
-    };
+    op = { type: 'area-select', startX: e.clientX, startY: e.clientY, moved: false };
     return;
   }
 
-  // MODO NORMAL — pega bloco clicado
   const block = pickBlock(e);
 
   if (!block) {
     if (currentTool === 'select') {
       const g = hitGround(e);
       if (g) {
-        op = {
-          type: 'maybe-create',
-          startX: e.clientX, startY: e.clientY,
-          point: g.point.clone(),
-          moved: false,
-        };
+        op = { type: 'maybe-create', startX: e.clientX, startY: e.clientY, point: g.point.clone(), moved: false };
       } else {
         setSelection([]);
       }
@@ -1559,10 +998,7 @@ renderer.domElement.addEventListener('pointerdown', e => {
     return;
   }
 
-  // Se já está num grupo selecionado, mantém
-  if (selectedIds.includes(block.id) && selectedIds.length > 1) {
-    // mantém
-  } else {
+  if (!(selectedIds.includes(block.id) && selectedIds.length > 1)) {
     setSelection([block.id]);
   }
 
@@ -1581,69 +1017,41 @@ renderer.domElement.addEventListener('pointerdown', e => {
       camDir.clone().negate(),
       new THREE.Vector3(block.position.x, block.position.y, block.position.z)
     );
-
-    // pega hit point
     ndcFrom(e);
     raycaster.setFromCamera(ndc, camera);
     const hits = raycaster.intersectObjects(Object.values(instancedMeshes).filter(im => im.count > 0), false);
     const startHit = hits.length ? hits[0].point.clone() : new THREE.Vector3(block.position.x, block.position.y, block.position.z);
-
-    multiMoveStart = {
-      items: getSelectedBlocks().map(b => ({ b, startPos: b.position.clone() })),
-      startHit,
-    };
-
-    op = {
-      type: 'move',
-      startX: e.clientX, startY: e.clientY,
-      moved: false,
-    };
+    multiMoveStart = { items: getSelectedBlocks().map(b => ({ b, startPos: b.position.clone() })), startHit };
+    op = { type: 'move', startX: e.clientX, startY: e.clientY, moved: false };
     document.body.classList.add('dragging');
   }
   else if (tool === 'rotate') {
-    const selected = getSelectedBlocks();
-    op = {
-      type: 'rotate',
-      startRotX: selected.map(b => b.rotation.x),
-      startRotY: selected.map(b => b.rotation.y),
-      startX: e.clientX, startY: e.clientY,
-      moved: false,
-    };
+    const sel = getSelectedBlocks();
+    op = { type: 'rotate', startRotX: sel.map(b => b.rotation.x), startRotY: sel.map(b => b.rotation.y), startX: e.clientX, startY: e.clientY, moved: false };
     document.body.classList.add('dragging');
   }
   else if (tool === 'scale') {
-    const selected = getSelectedBlocks();
-    op = {
-      type: 'scale',
-      startScale: selected.map(b => b.scale.clone()),
-      startX: e.clientX, startY: e.clientY,
-      moved: false,
-    };
+    const sel = getSelectedBlocks();
+    op = { type: 'scale', startScale: sel.map(b => b.scale.clone()), startX: e.clientX, startY: e.clientY, moved: false };
     document.body.classList.add('dragging');
   }
 });
 
 addEventListener('pointermove', e => {
   if (isRotatingCam) {
-    yaw   -= e.movementX * 0.005;
+    yaw -= e.movementX * 0.005;
     pitch -= e.movementY * 0.005;
     pitch = Math.max(-Math.PI/2 + 0.01, Math.min(Math.PI/2 - 0.01, pitch));
     return;
   }
-
   if (!op) return;
-
   const dx = e.clientX - op.startX;
   const dy = e.clientY - op.startY;
   if (Math.abs(dx) + Math.abs(dy) > 3) op.moved = true;
-
   if (op.type === 'area-select') {
-    if (op.moved) {
-      updateAreaRect(op.startX, op.startY, e.clientX, e.clientY);
-    }
+    if (op.moved) updateAreaRect(op.startX, op.startY, e.clientX, e.clientY);
     return;
   }
-
   if (op.type === 'maybe-create') return;
 
   if (op.type === 'move' && multiMoveStart) {
@@ -1651,16 +1059,14 @@ addEventListener('pointermove', e => {
     raycaster.setFromCamera(ndc, camera);
     if (raycaster.ray.intersectPlane(movePlane, moveHitPoint)) {
       const delta = moveHitPoint.clone().sub(multiMoveStart.startHit);
-      multiMoveStart.items.forEach(it => {
-        it.b.position.copy(it.startPos.clone().add(delta));
-      });
+      multiMoveStart.items.forEach(it => { it.b.position.copy(it.startPos.clone().add(delta)); });
       rebuildAllInstances();
       refreshProps();
     }
   }
   else if (op.type === 'rotate') {
-    const selected = getSelectedBlocks();
-    selected.forEach((b, i) => {
+    const sel = getSelectedBlocks();
+    sel.forEach((b, i) => {
       b.rotation.y = op.startRotY[i] + dx * 0.01;
       b.rotation.x = op.startRotX[i] + dy * 0.01;
     });
@@ -1668,13 +1074,11 @@ addEventListener('pointermove', e => {
     refreshProps();
   }
   else if (op.type === 'scale') {
-    const selected = getSelectedBlocks();
+    const sel = getSelectedBlocks();
     const dist = Math.hypot(dx, dy);
     const sign = (dx + dy) > 0 ? 1 : -1;
     const factor = 1 + (sign * dist * 0.005);
-    selected.forEach((b, i) => {
-      b.scale.copy(op.startScale[i].clone().multiplyScalar(Math.max(0.1, factor)));
-    });
+    sel.forEach((b, i) => { b.scale.copy(op.startScale[i].clone().multiplyScalar(Math.max(0.1, factor))); });
     rebuildAllInstances();
     refreshProps();
   }
@@ -1683,12 +1087,9 @@ addEventListener('pointermove', e => {
 addEventListener('pointerup', e => {
   if (e.button === 2) { isRotatingCam = false; return; }
   if (e.button === 0 && e.altKey) { isRotatingCam = false; return; }
-
   pointerIsDown = false;
   document.body.classList.remove('dragging');
-
   if (!op) return;
-
   const opType = op.type;
   const wasMoved = op.moved;
 
@@ -1696,11 +1097,8 @@ addEventListener('pointerup', e => {
     if (wasMoved) {
       const found = getBlocksInRect(op.startX, op.startY, e.clientX, e.clientY);
       setSelection(found);
-      if (found.length > 0) {
-        showHint('🟦', `${found.length} bloco${found.length > 1 ? 's' : ''} selecionado${found.length > 1 ? 's' : ''}!`);
-      } else {
-        showHint('💭', 'Nenhum bloco nessa área', 1500);
-      }
+      if (found.length > 0) showHint('🟦', `${found.length} bloco${found.length > 1 ? 's' : ''} selecionado${found.length > 1 ? 's' : ''}!`);
+      else showHint('💭', 'Nenhum bloco nessa área', 1500);
     }
     clearAreaRect();
     op = null;
@@ -1725,7 +1123,6 @@ addEventListener('pointerup', e => {
     setSelection([blocks[blocks.length - 1].id]);
     showHint('✨', 'Bloco criado!');
   }
-
   op = null;
 });
 
@@ -1741,7 +1138,6 @@ const QUICK_COLORS = [
   '#ff0000','#ff8c00','#ffd700','#3ba55d','#3498db','#a259ff',
   '#ff69b4','#8b4513','#ffffff','#808080','#000000','#7fffd4'
 ];
-
 if (quickColor) {
   QUICK_COLORS.forEach(c => {
     const d = document.createElement('div');
@@ -1751,19 +1147,13 @@ if (quickColor) {
     d.onclick = () => {
       if (quickColor.targetBlockId) {
         const b = findBlockById(quickColor.targetBlockId);
-        if (b) {
-          b.color = parseInt(c.replace('#',''), 16);
-          rebuildAllInstances();
-          pushHistory();
-          refreshProps();
-        }
+        if (b) { b.color = parseInt(c.replace('#',''), 16); rebuildAllInstances(); pushHistory(); refreshProps(); }
       }
       quickColor.classList.remove('show');
     };
     quickColor.appendChild(d);
   });
 }
-
 function openQuickColor(x, y, blockId) {
   if (!quickColor) return;
   quickColor.targetBlockId = blockId;
@@ -1779,15 +1169,10 @@ const propsEl = document.getElementById('props');
 const multiSection = document.getElementById('multiSection');
 
 function refreshProps() {
-  if (selectedIds.length === 0) {
-    propsEl.classList.add('hidden');
-    return;
-  }
+  if (selectedIds.length === 0) { propsEl.classList.add('hidden'); return; }
   propsEl.classList.remove('hidden');
-
   const isMulti = selectedIds.length > 1;
   multiSection.style.display = isMulti ? '' : 'none';
-
   if (isMulti) {
     document.getElementById('multiCount').textContent = selectedIds.length;
     document.getElementById('propName').textContent = selectedIds.length + ' blocos';
@@ -1796,34 +1181,17 @@ function refreshProps() {
     document.getElementById('propName').textContent = '#' + primaryId;
     document.getElementById('propName').classList.remove('multi');
   }
-
   const prim = getPrimaryBlock();
   if (!prim) return;
-
-  const p = prim.position;
-  const r = prim.rotation;
-  const s = prim.scale;
+  const p = prim.position, r = prim.rotation, s = prim.scale;
   const c = '#' + prim.color.toString(16).padStart(6, '0');
-
-  setInput('px', p.x.toFixed(2));
-  setInput('py', p.y.toFixed(2));
-  setInput('pz', p.z.toFixed(2));
-  setInput('rx', (r.x * 180/Math.PI).toFixed(0));
-  setInput('ry', (r.y * 180/Math.PI).toFixed(0));
-  setInput('rz', (r.z * 180/Math.PI).toFixed(0));
-  setInput('sx', s.x.toFixed(2));
-  setInput('sy', s.y.toFixed(2));
-  setInput('sz', s.z.toFixed(2));
+  setInput('px', p.x.toFixed(2)); setInput('py', p.y.toFixed(2)); setInput('pz', p.z.toFixed(2));
+  setInput('rx', (r.x * 180/Math.PI).toFixed(0)); setInput('ry', (r.y * 180/Math.PI).toFixed(0)); setInput('rz', (r.z * 180/Math.PI).toFixed(0));
+  setInput('sx', s.x.toFixed(2)); setInput('sy', s.y.toFixed(2)); setInput('sz', s.z.toFixed(2));
   setInput('color', c);
-
-  setSlider('rx', (r.x * 180/Math.PI));
-  setSlider('ry', (r.y * 180/Math.PI));
-  setSlider('rz', (r.z * 180/Math.PI));
-  setSlider('sx', s.x);
-  setSlider('sy', s.y);
-  setSlider('sz', s.z);
+  setSlider('rx', (r.x * 180/Math.PI)); setSlider('ry', (r.y * 180/Math.PI)); setSlider('rz', (r.z * 180/Math.PI));
+  setSlider('sx', s.x); setSlider('sy', s.y); setSlider('sz', s.z);
 }
-
 function setInput(p, v) {
   const el = propsEl.querySelector(`input[data-p="${p}"]`);
   if (el && document.activeElement !== el) el.value = v;
@@ -1843,7 +1211,6 @@ propsEl.querySelectorAll('input[data-p]').forEach(inp => {
     debouncedHistory();
   });
 });
-
 propsEl.querySelectorAll('input[data-s]').forEach(inp => {
   inp.addEventListener('input', () => {
     if (selectedIds.length === 0) return;
@@ -1853,7 +1220,6 @@ propsEl.querySelectorAll('input[data-s]').forEach(inp => {
     debouncedHistory();
   });
 });
-
 propsEl.querySelectorAll('.stepBtn').forEach(btn => {
   btn.onclick = () => {
     if (selectedIds.length === 0) return;
@@ -1887,13 +1253,11 @@ function applyProp(prop, v) {
   if (selectedIds.length === 0) return;
   const d2r = Math.PI/180;
   const sel = getSelectedBlocks();
-
   if (prop === 'color') {
     const hex = typeof v === 'string' ? parseInt(v.replace('#',''), 16) : v;
     sel.forEach(b => b.color = hex);
     return;
   }
-
   sel.forEach(b => {
     if (prop === 'px') b.position.x = v;
     if (prop === 'py') b.position.y = v;
@@ -1918,9 +1282,6 @@ propsEl.querySelectorAll('.swatch[data-color]').forEach(sw => {
   };
 });
 
-/* ============================================================
-   BOTÕES DE AÇÃO
-============================================================ */
 document.getElementById('btnUndo').onclick = () => undo();
 document.getElementById('btnRedo').onclick = () => redo();
 document.getElementById('btnDuplicate').onclick = () => duplicateSelected();
@@ -1928,16 +1289,10 @@ document.getElementById('btnCopy').onclick = () => copySelected();
 document.getElementById('btnPaste').onclick = () => pasteClipboard();
 document.getElementById('btnDelete').onclick = () => deleteSelected();
 
-/* ============================================================
-   AÇÕES
-============================================================ */
 let clipboard = null;
 
 function duplicateSelected() {
-  if (selectedIds.length === 0) {
-    showHint('💭', 'Selecione algum bloco primeiro', 1600);
-    return;
-  }
+  if (selectedIds.length === 0) { showHint('💭', 'Selecione algum bloco primeiro', 1600); return; }
   const sel = getSelectedBlocks();
   const newIds = [];
   sel.forEach(orig => {
@@ -1955,12 +1310,8 @@ function duplicateSelected() {
   setSelection(newIds);
   showHint('⧉', `${sel.length} bloco${sel.length > 1 ? 's' : ''} duplicado${sel.length > 1 ? 's' : ''}!`);
 }
-
 function copySelected() {
-  if (selectedIds.length === 0) {
-    showHint('💭', 'Selecione algum bloco primeiro', 1600);
-    return;
-  }
+  if (selectedIds.length === 0) { showHint('💭', 'Selecione algum bloco primeiro', 1600); return; }
   clipboard = getSelectedBlocks().map(b => ({
     shape: b.shape,
     position: b.position.clone(),
@@ -1970,12 +1321,8 @@ function copySelected() {
   }));
   showHint('📋', `${clipboard.length} bloco${clipboard.length > 1 ? 's' : ''} copiado${clipboard.length > 1 ? 's' : ''}!`);
 }
-
 function pasteClipboard() {
-  if (!clipboard || clipboard.length === 0) {
-    showHint('💭', 'Nada copiado ainda', 1600);
-    return;
-  }
+  if (!clipboard || clipboard.length === 0) { showHint('💭', 'Nada copiado ainda', 1600); return; }
   const newIds = [];
   clipboard.forEach(item => {
     const nb = createBlock(
@@ -1992,12 +1339,8 @@ function pasteClipboard() {
   setSelection(newIds);
   showHint('📥', `${newIds.length} bloco${newIds.length > 1 ? 's' : ''} colado${newIds.length > 1 ? 's' : ''}!`);
 }
-
 function deleteSelected() {
-  if (selectedIds.length === 0) {
-    showHint('💭', 'Selecione algum bloco primeiro', 1600);
-    return;
-  }
+  if (selectedIds.length === 0) { showHint('💭', 'Selecione algum bloco primeiro', 1600); return; }
   const count = selectedIds.length;
   selectedIds.forEach(id => removeBlockById(id));
   setSelection([]);
@@ -2021,7 +1364,6 @@ function snapshot() {
     color: b.color
   })));
 }
-
 function restore(str) {
   const data = JSON.parse(str);
   blocks.length = 0;
@@ -2039,7 +1381,6 @@ function restore(str) {
   rebuildAllInstances();
   setSelection([]);
 }
-
 function pushHistory() {
   const s = snapshot();
   if (s === lastSnap) return;
@@ -2048,36 +1389,78 @@ function pushHistory() {
   redoStack.length = 0;
   lastSnap = s;
 }
-
 let histTimer = null;
-function debouncedHistory() {
-  clearTimeout(histTimer);
-  histTimer = setTimeout(pushHistory, 400);
-}
-
+function debouncedHistory() { clearTimeout(histTimer); histTimer = setTimeout(pushHistory, 400); }
 function undo() {
   if (!undoStack.length) { showHint('💭', 'Nada pra desfazer', 1400); return; }
   redoStack.push(snapshot());
   const s = undoStack.pop();
-  restore(s);
-  lastSnap = s;
+  restore(s); lastSnap = s;
   showHint('↶', 'Desfeito');
 }
 function redo() {
   if (!redoStack.length) { showHint('💭', 'Nada pra refazer', 1400); return; }
   undoStack.push(snapshot());
   const s = redoStack.pop();
-  restore(s);
-  lastSnap = s;
+  restore(s); lastSnap = s;
   showHint('↷', 'Refeito');
 }
 
 /* ============================================================
-   CÓDIGO
-============================================================ */
-const CODE_MAP = 'MS3D:';
+   CÓDIGO — AGORA COM DICIONÁRIO AUTOMÁTICO
+   ============================================================
+   FORMATO NOVO:
+   {
+     "d": { "0": ["box", 1,1,1, 0,0,0, 16711680], ... },   // dicionário de padrões
+     "b": [ [0, x,y,z], [0, x,y,z], ... ]                  // blocos usando atalhos
+   }
+   
+   FORMATO ANTIGO (compatibilidade): lista de 11 itens por bloco
+   ============================================================ */
+const CODE_MAP_V1 = 'MS3D:';
+const CODE_MAP_V2 = 'MS3D2:';
 
-function serializeMap() {
+function serializeMapV2() {
+  const r3 = n => Math.round(n * 1000) / 1000;
+  // Chave de padrão: shape + rotação + escala + cor (não inclui posição)
+  const dict = {};       // chave → id
+  const dictList = [];   // id → array de atributos
+  const bList = [];      // blocos: [dictId, x, y, z]
+
+  blocks.forEach(b => {
+    const key = [
+      b.shape,
+      r3(b.rotation.x), r3(b.rotation.y), r3(b.rotation.z),
+      r3(b.scale.x), r3(b.scale.y), r3(b.scale.z),
+      b.color
+    ].join('|');
+
+    let id = dict[key];
+    if (id === undefined) {
+      id = dictList.length;
+      dict[key] = id;
+      dictList.push([
+        b.shape,
+        r3(b.rotation.x), r3(b.rotation.y), r3(b.rotation.z),
+        r3(b.scale.x), r3(b.scale.y), r3(b.scale.z),
+        b.color
+      ]);
+    }
+    bList.push([id, r3(b.position.x), r3(b.position.y), r3(b.position.z)]);
+  });
+
+  return { d: dictList, b: bList };
+}
+
+function encodeMapV2() {
+  const obj = serializeMapV2();
+  const json = JSON.stringify(obj);
+  const bytes = new TextEncoder().encode(json);
+  const compressed = pako.deflate(bytes, { level: 9 });
+  return CODE_MAP_V2 + bytesToBase64url(compressed);
+}
+
+function serializeMapV1() {
   const r3 = n => Math.round(n * 1000) / 1000;
   return blocks.map(b => [
     b.shape,
@@ -2088,31 +1471,66 @@ function serializeMap() {
   ]);
 }
 
-function encodeMap() {
-  const json = JSON.stringify(serializeMap());
+function encodeMapV1() {
+  const json = JSON.stringify(serializeMapV1());
   const bytes = new TextEncoder().encode(json);
-  const compressed = pako.deflate(bytes);
-  return CODE_MAP + bytesToBase64url(compressed);
+  const compressed = pako.deflate(bytes, { level: 9 });
+  return CODE_MAP_V1 + bytesToBase64url(compressed);
 }
 
-function decodeMap(code) {
-  code = code.trim();
-  if (!code.startsWith(CODE_MAP)) throw new Error('Código inválido: precisa começar com "' + CODE_MAP + '"');
-  const b64 = code.slice(CODE_MAP.length);
+function encodeMap() {
+  // Usa V2 se ficou menor, senão V1 (compatibilidade com mapas antigos)
+  const v1 = encodeMapV1();
+  const v2 = encodeMapV2();
+  return v2.length <= v1.length ? v2 : v1;
+}
+
+function decodeMapV1(code) {
+  const b64 = code.slice(CODE_MAP_V1.length);
   const compressed = base64urlToBytes(b64);
   const bytes = pako.inflate(compressed);
   const json = new TextDecoder().decode(bytes);
   const data = JSON.parse(json);
-  if (!Array.isArray(data)) throw new Error('Código não contém blocos.');
-  return data;
+  if (!Array.isArray(data)) throw new Error('Código V1 inválido');
+  return data.map(arr => {
+    const [shape, px,py,pz, rx,ry,rz, sx,sy,sz, color] = arr;
+    return { shape, position: [px,py,pz], rotation: [rx,ry,rz], scale: [sx,sy,sz], color };
+  });
+}
+
+function decodeMapV2(code) {
+  const b64 = code.slice(CODE_MAP_V2.length);
+  const compressed = base64urlToBytes(b64);
+  const bytes = pako.inflate(compressed);
+  const json = new TextDecoder().decode(bytes);
+  const obj = JSON.parse(json);
+  if (!obj.d || !obj.b) throw new Error('Código V2 inválido');
+  const out = [];
+  obj.b.forEach(([id, x, y, z]) => {
+    const t = obj.d[id];
+    if (!t) return;
+    out.push({
+      shape: t[0],
+      rotation: [t[1], t[2], t[3]],
+      scale: [t[4], t[5], t[6]],
+      color: t[7],
+      position: [x, y, z]
+    });
+  });
+  return out;
+}
+
+function decodeMap(code) {
+  code = code.trim();
+  if (code.startsWith(CODE_MAP_V2)) return decodeMapV2(code);
+  if (code.startsWith(CODE_MAP_V1)) return decodeMapV1(code);
+  throw new Error('Código inválido: precisa começar com "MS3D:" ou "MS3D2:"');
 }
 
 function applyMapData(data) {
   blocks.length = 0;
-  data.forEach(arr => {
-    if (!Array.isArray(arr) || arr.length !== 11) return;
-    const [shape, px,py,pz, rx,ry,rz, sx,sy,sz, color] = arr;
-    createBlock(shape, new THREE.Vector3(px,py,pz), color, [rx,ry,rz], [sx,sy,sz]);
+  data.forEach(d => {
+    createBlock(d.shape, new THREE.Vector3(d.position[0], d.position[1], d.position[2]), d.color, d.rotation, d.scale);
   });
   rebuildAllInstances();
   setSelection([]);
@@ -2158,7 +1576,6 @@ function openSaveExport() {
   saveImportView.style.display = 'none';
   saveModal.classList.add('show');
 }
-
 function openSaveImport() {
   tabImport.classList.add('active');
   tabExport.classList.remove('active');
@@ -2168,7 +1585,6 @@ function openSaveImport() {
   saveModal.classList.add('show');
   setTimeout(() => importCode.focus(), 50);
 }
-
 document.getElementById('btnSave').onclick = openSaveExport;
 tabExport.onclick = () => {
   tabExport.classList.add('active');
@@ -2192,13 +1608,11 @@ document.getElementById('btnCopyCode').onclick = async () => {
     btn.textContent = '✅ Copiado!';
     setTimeout(() => btn.textContent = old, 1500);
   } catch (e) {
-    exportCode.select();
-    document.execCommand('copy');
+    exportCode.select(); document.execCommand('copy');
     btn.textContent = '✅ Copiado!';
     setTimeout(() => btn.textContent = '📋 Copiar código', 1500);
   }
 };
-
 document.getElementById('btnShareCode').onclick = async () => {
   const url = new URL(location.href);
   url.hash = '#' + encodeURIComponent(exportCode.value);
@@ -2208,11 +1622,8 @@ document.getElementById('btnShareCode').onclick = async () => {
     const old = btn.textContent;
     btn.textContent = '✅ Link copiado!';
     setTimeout(() => btn.textContent = old, 1500);
-  } catch (e) {
-    alert('Link gerado:\n\n' + url.toString());
-  }
+  } catch (e) { alert('Link gerado:\n\n' + url.toString()); }
 };
-
 document.getElementById('btnDoImport').onclick = () => {
   const code = importCode.value.trim();
   if (!code) { alert('Cole um código primeiro!'); return; }
@@ -2226,28 +1637,20 @@ document.getElementById('btnDoImport').onclick = () => {
     alert('❌ Erro ao carregar:\n\n' + err.message);
   }
 };
-
 document.getElementById('btnPasteClipboard').onclick = async () => {
   try {
     const txt = await navigator.clipboard.readText();
     importCode.value = txt.trim();
-  } catch (e) {
-    alert('Cole manualmente (Ctrl+V).');
-  }
+  } catch (e) { alert('Cole manualmente (Ctrl+V).'); }
 };
-
 document.querySelectorAll('.modalClose').forEach(btn => {
   btn.onclick = () => document.getElementById(btn.dataset.close).classList.remove('show');
 });
-
 document.querySelectorAll('.modal').forEach(m => {
   m.addEventListener('click', e => {
-    if (e.target === m && m.id !== 'confirmClearModal') {
-      m.classList.remove('show');
-    }
+    if (e.target === m && m.id !== 'confirmClearModal') m.classList.remove('show');
   });
 });
-
 function formatBytes(b) {
   if (b < 1024) return b + ' B';
   if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
@@ -2259,35 +1662,23 @@ document.getElementById('btnHelp').onclick = () => {
   document.getElementById('btnHelp').classList.remove('pulse');
 };
 
-/* ============================================================
-   SOMBRAS (liga/desliga)
-============================================================ */
 const btnShadows = document.getElementById('btnShadows');
 btnShadows.onclick = () => {
   const on = !renderer.shadowMap.enabled;
   renderer.shadowMap.enabled = on;
   sun.castShadow = on;
-  // Marca todos os objetos pra atualizar
   scene.traverse(o => { if (o.isMesh || o.isInstancedMesh) o.castShadow = on; });
   btnShadows.classList.toggle('active', on);
   showHint(on ? '✨' : '🌑', on ? 'Sombras ligadas!' : 'Sombras desligadas', 1600);
 };
 
-/* ============================================================
-   APAGAR TUDO
-============================================================ */
 document.getElementById('btnClearAll').onclick = () => {
   const count = blocks.length;
   if (count === 0) { showHint('💭', 'O mapa já tá vazio!', 2000); return; }
-  document.getElementById('clearCount').textContent =
-    count === 1 ? '1 objeto no mapa' : `${count} objetos no mapa`;
+  document.getElementById('clearCount').textContent = count === 1 ? '1 objeto no mapa' : `${count} objetos no mapa`;
   confirmClearModal.classList.add('show');
 };
-
-document.getElementById('btnCancelClear').onclick = () => {
-  confirmClearModal.classList.remove('show');
-};
-
+document.getElementById('btnCancelClear').onclick = () => confirmClearModal.classList.remove('show');
 document.getElementById('btnConfirmClear').onclick = () => {
   blocks.length = 0;
   rebuildAllInstances();
@@ -2297,11 +1688,7 @@ document.getElementById('btnConfirmClear').onclick = () => {
   showHint('🧹', 'Tudo apagado!', 2500);
 };
 
-/* ============================================================
-   FORMAS
-============================================================ */
 let currentShape = 'box';
-
 document.querySelectorAll('.shapeCard').forEach(b => {
   b.onclick = () => {
     document.querySelectorAll('.shapeCard').forEach(x => x.classList.remove('active'));
@@ -2311,12 +1698,8 @@ document.querySelectorAll('.shapeCard').forEach(b => {
   };
 });
 
-/* ============================================================
-   TOOLTIPS
-============================================================ */
 const tooltip = document.getElementById('tooltip');
 let tooltipTimer = null;
-
 document.querySelectorAll('[title]').forEach(el => {
   el.addEventListener('mouseenter', () => {
     if (!el.title) return;
@@ -2337,26 +1720,17 @@ document.querySelectorAll('[title]').forEach(el => {
         const tr = tooltip.getBoundingClientRect();
         if (tr.right > innerWidth - 10) tooltip.style.left = (innerWidth - tr.width/2 - 10) + 'px';
         if (tr.left < 10) tooltip.style.left = (tr.width/2 + 10) + 'px';
-        if (tr.top < 10) {
-          tooltip.style.top = (r.bottom + 8) + 'px';
-          tooltip.style.transform = 'translate(-50%, 0)';
-        }
+        if (tr.top < 10) { tooltip.style.top = (r.bottom + 8) + 'px'; tooltip.style.transform = 'translate(-50%, 0)'; }
       });
     }, 350);
   });
   el.addEventListener('mouseleave', () => {
     clearTimeout(tooltipTimer);
     tooltip.classList.remove('show');
-    if (el.dataset.tipText) {
-      el.title = el.dataset.tipText;
-      delete el.dataset.tipText;
-    }
+    if (el.dataset.tipText) { el.title = el.dataset.tipText; delete el.dataset.tipText; }
   });
 });
 
-/* ============================================================
-   FPS
-============================================================ */
 let frameCount = 0;
 let lastFpsTime = performance.now();
 function updateFps() {
@@ -2372,23 +1746,17 @@ function updateFps() {
   }
 }
 
-/* ============================================================
-   HASH
-============================================================ */
 function tryLoadFromHash() {
   if (!location.hash) return;
   try {
     const code = decodeURIComponent(location.hash.slice(1));
-    if (code.startsWith(CODE_MAP)) {
+    if (code.startsWith('MS3D:') || code.startsWith('MS3D2:')) {
       applyMapData(decodeMap(code));
       setTimeout(() => showHint('✅', 'Mapa carregado do link!', 2500), 100);
     }
   } catch (e) { console.warn(e); }
 }
 
-/* ============================================================
-   LOOP
-============================================================ */
 const clock = new THREE.Clock();
 function animate() {
   const d = clock.getDelta();
