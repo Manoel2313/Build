@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Mini Studio 3D — v5</title>
+<title>Mini Studio 3D — v5.1 (seleção em área)</title>
 <style>
   * { box-sizing: border-box; }
   html, body { margin:0; padding:0; overflow:hidden; background:#2b2f36; font-family: system-ui, Arial, sans-serif; }
@@ -15,6 +15,7 @@
   body.tool-rotate canvas { cursor: crosshair; }
   body.tool-scale canvas  { cursor: nwse-resize; }
   body.tool-color canvas  { cursor: cell; }
+  body.select-mode canvas { cursor: crosshair; }
 
   /* ============================================================
      BARRA SUPERIOR (FORMAS)
@@ -72,27 +73,22 @@
   }
   .shapeCard.active .shapeName { color: #fff; }
 
-  /* ícones das formas (via CSS puro) */
   .icoCube {
     width: 26px; height: 26px; background: #a0a4ab;
     border-radius: 4px; transform: rotate(-8deg);
     box-shadow: 4px 4px 0 rgba(0,0,0,0.2);
   }
   .shapeCard.active .icoCube { background: #fff; }
-
   .icoSphere {
     width: 28px; height: 28px; background: radial-gradient(circle at 30% 30%, #d0d4db, #808080);
     border-radius: 50%;
   }
   .shapeCard.active .icoSphere { background: radial-gradient(circle at 30% 30%, #fff, #b0b4bb); }
-
   .icoTriangle {
-    width: 28px; height: 28px;
-    background: #a0a4ab;
+    width: 28px; height: 28px; background: #a0a4ab;
     clip-path: polygon(50% 0, 100% 100%, 0 100%);
   }
   .shapeCard.active .icoTriangle { background: #fff; }
-
   .icoCylinder {
     width: 24px; height: 30px; background: #a0a4ab;
     border-radius: 50% / 15%;
@@ -104,7 +100,6 @@
   }
   .shapeCard.active .icoCylinder { background: #fff; }
   .shapeCard.active .icoCylinder::before { background: #e0e4eb; }
-
   .icoCone {
     width: 0; height: 0;
     border-left: 14px solid transparent;
@@ -112,16 +107,14 @@
     border-bottom: 28px solid #a0a4ab;
   }
   .shapeCard.active .icoCone { border-bottom-color: #fff; }
-
   .icoWedge {
-    width: 28px; height: 28px;
-    background: #a0a4ab;
+    width: 28px; height: 28px; background: #a0a4ab;
     clip-path: polygon(0 100%, 100% 100%, 0 0);
   }
   .shapeCard.active .icoWedge { background: #fff; }
 
   /* ============================================================
-     BARRA INFERIOR (FERRAMENTAS)
+     BARRA INFERIOR (FERRAMENTAS + AÇÕES)
   ============================================================ */
   #toolBar {
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
@@ -180,6 +173,27 @@
   .toolCard.active .toolName { color: #fff; }
   .toolCard.active .toolIcon { color: #fff; }
 
+  /* Botão especial "Selecionar Área" */
+  .toolCard.areaMode {
+    border-color: #00bcd4;
+  }
+  .toolCard.areaMode:hover {
+    background: #1f3238;
+    border-color: #00e5ff;
+  }
+  .toolCard.areaMode.active {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    border-color: #00e5ff;
+    box-shadow: 0 0 0 3px rgba(0,188,212,0.4);
+    animation: pulseArea 1.5s infinite;
+  }
+  .toolCard.areaMode.active .toolIcon,
+  .toolCard.areaMode.active .toolName { color: #fff; }
+  @keyframes pulseArea {
+    0%,100% { box-shadow: 0 0 0 3px rgba(0,188,212,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(0,188,212,0.7); }
+  }
+
   .barDivider {
     width: 2px; height: 44px;
     background: #3a3f47;
@@ -217,7 +231,8 @@
   ============================================================ */
   #topLeftControls {
     position:fixed; top:12px; left:12px; z-index:30;
-    display: flex; gap: 8px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+    max-width: 40vw;
   }
   .floatBtn {
     background:rgba(30,32,38,0.95); backdrop-filter: blur(12px);
@@ -238,13 +253,15 @@
     font-size: 13px;
     display: none;
   }
-  @media (min-width: 900px) {
+  @media (min-width: 1100px) {
     .floatBtn .label { display: inline; }
   }
   .floatBtn.help { background: linear-gradient(135deg, #5865f2, #7c3aed); color:#fff; border-color: #7c3aed; }
   .floatBtn.help:hover { background: linear-gradient(135deg, #6b78ff, #9333ea); }
   .floatBtn.save { background: linear-gradient(135deg, #3ba55d, #2d8a4a); color:#fff; border-color: #3ba55d; }
   .floatBtn.save:hover { background: linear-gradient(135deg, #4bc46d, #3ba55d); }
+  .floatBtn.clear { background: linear-gradient(135deg, #a13a3a, #7a2b2b); color:#fff; border-color: #a13a3a; }
+  .floatBtn.clear:hover { background: linear-gradient(135deg, #c94a4a, #a13a3a); }
   .floatBtn.help.pulse { animation: pulse 2s infinite; }
   @keyframes pulse {
     0%,100% { box-shadow: 0 4px 16px rgba(88,101,242,0.5); }
@@ -265,6 +282,12 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.4);
     user-select: none;
     max-width: 220px;
+    transition: opacity .3s, transform .3s;
+  }
+  #cameraHint.hidden {
+    opacity: 0;
+    transform: translateX(-30px);
+    pointer-events: none;
   }
   #cameraHint .title {
     font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
@@ -287,7 +310,25 @@
   #cameraHint .text { color: #a8adb8; font-size: 12px; }
 
   /* ============================================================
-     HINT / FEEDBACK
+     AVISO DE MODO ÁREA (aparece quando ativado)
+  ============================================================ */
+  #areaModeBanner {
+    position:fixed; top:90px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    color:#fff;
+    padding: 12px 24px; border-radius: 14px;
+    font-size: 15px; font-weight: 700;
+    box-shadow: 0 8px 24px rgba(0,188,212,0.5);
+    opacity:0; transition: all .3s;
+    pointer-events: none; z-index: 40;
+    display: flex; align-items: center; gap: 10px;
+    white-space: nowrap;
+  }
+  #areaModeBanner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #areaModeBanner .emoji { font-size: 22px; }
+
+  /* ============================================================
+     HINT
   ============================================================ */
   #hint {
     position:fixed; bottom:100px; left:50%; transform:translateX(-50%) translateY(20px);
@@ -333,6 +374,9 @@
     background:#5865f2; color:#fff; font-size:11px;
     padding:3px 10px; border-radius:10px; font-weight:700;
   }
+  #propsHeader h4 .badgeId.multi {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+  }
 
   .propSection {
     border-radius: 12px; padding: 12px; margin-bottom: 10px;
@@ -342,6 +386,7 @@
   .propSection.rot { border-color: #e67e22; background: linear-gradient(135deg, rgba(230,126,34,0.08), rgba(230,126,34,0.02)); }
   .propSection.size { border-color: #3ba55d; background: linear-gradient(135deg, rgba(59,165,93,0.08), rgba(59,165,93,0.02)); }
   .propSection.color { border-color: #a259ff; background: linear-gradient(135deg, rgba(162,89,255,0.08), rgba(162,89,255,0.02)); }
+  .propSection.multi { border-color: #00bcd4; background: linear-gradient(135deg, rgba(0,188,212,0.1), rgba(0,188,212,0.02)); }
 
   .propHeader {
     display: flex; align-items: center; gap: 8px;
@@ -354,6 +399,7 @@
   .propSection.rot .propHeader { color: #e67e22; }
   .propSection.size .propHeader { color: #3ba55d; }
   .propSection.color .propHeader { color: #a259ff; }
+  .propSection.multi .propHeader { color: #00bcd4; }
   .propHeader .ico { font-size: 16px; }
 
   .axisRow { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
@@ -527,9 +573,7 @@
     color:#8a8f98;
   }
 
-  /* ============================================================
-     AJUDA
-  ============================================================ */
+  /* AJUDA */
   .helpSection { margin-bottom: 28px; }
   .helpSection h2 {
     font-size: 20px; color:#7fffd4;
@@ -575,9 +619,6 @@
   }
   .helpTip b { color: #7fffd4; }
 
-  /* ============================================================
-     TOOLTIP
-  ============================================================ */
   .tooltip {
     position: fixed; background: #1a1c20;
     color: #fff; padding: 10px 14px; border-radius: 10px;
@@ -595,7 +636,7 @@
 <body class="tool-select">
 
 <!-- ============================================================
-     CANTO SUPERIOR ESQUERDO — botões flutuantes
+     CANTO SUPERIOR ESQUERDO
 ============================================================ -->
 <div id="topLeftControls">
   <button class="floatBtn help pulse" id="btnHelp" title="Como usar">
@@ -605,6 +646,10 @@
   <button class="floatBtn save" id="btnSave" title="Salvar / Carregar">
     <span>💾</span>
     <span class="label">Salvar</span>
+  </button>
+  <button class="floatBtn clear" id="btnClearAll" title="Apagar tudo">
+    <span>🗑️</span>
+    <span class="label">Apagar Tudo</span>
   </button>
 </div>
 
@@ -640,6 +685,14 @@
 </div>
 
 <!-- ============================================================
+     BANNER DE MODO ÁREA
+============================================================ -->
+<div id="areaModeBanner">
+  <span class="emoji">🟦</span>
+  <span>Arraste o mouse no chão pra selecionar vários blocos!</span>
+</div>
+
+<!-- ============================================================
      BARRA INFERIOR (FERRAMENTAS + AÇÕES)
 ============================================================ -->
 <div id="toolBar">
@@ -667,6 +720,14 @@
 
   <div class="barDivider"></div>
 
+  <span class="barLabel">🟦 Área</span>
+  <div class="toolCard areaMode" id="btnAreaMode" title="Selecionar vários blocos de uma vez">
+    <div class="toolIcon">🟦</div>
+    <div class="toolName">Seleção</div>
+  </div>
+
+  <div class="barDivider"></div>
+
   <span class="barLabel">⚡ Ações</span>
   <div class="actionBtn" id="btnUndo" title="Desfazer">
     <div class="toolIcon">↶</div>
@@ -680,6 +741,14 @@
     <div class="toolIcon">⧉</div>
     <div class="toolName">Duplicar</div>
   </div>
+  <div class="actionBtn" id="btnCopy" title="Copiar">
+    <div class="toolIcon">📋</div>
+    <div class="toolName">Copiar</div>
+  </div>
+  <div class="actionBtn" id="btnPaste" title="Colar">
+    <div class="toolIcon">📥</div>
+    <div class="toolName">Colar</div>
+  </div>
   <div class="actionBtn danger" id="btnDelete" title="Apagar">
     <div class="toolIcon">🗑️</div>
     <div class="toolName">Apagar</div>
@@ -687,7 +756,7 @@
 </div>
 
 <!-- ============================================================
-     LEMBRETE DE CÂMERA (CANTO INFERIOR ESQUERDO)
+     LEMBRETE DE CÂMERA
 ============================================================ -->
 <div id="cameraHint">
   <div class="title">📷 Como olhar</div>
@@ -718,6 +787,21 @@
 <div id="props" class="hidden">
   <div id="propsHeader">
     <h4>✏️ Editando <span class="badgeId" id="propName">—</span></h4>
+  </div>
+
+  <!-- Seção especial quando tem seleção múltipla -->
+  <div class="propSection multi" id="multiSection" style="display:none;">
+    <div class="propHeader"><span class="ico">🟦</span><span>Vários blocos</span></div>
+    <div style="text-align:center; padding: 8px 0;">
+      <div style="font-size: 32px; font-weight: 900; color: #00bcd4; line-height: 1;" id="multiCount">0</div>
+      <div style="font-size: 12px; color: #8a8f98; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;">
+        blocos selecionados
+      </div>
+    </div>
+    <div style="font-size: 12px; color: #a8adb8; line-height: 1.6; text-align: center; margin-top: 10px;">
+      Use os botões <b style="color:#fff;">Duplicar</b> ou <b style="color:#fff;">Apagar</b>
+      da barra de baixo.
+    </div>
   </div>
 
   <div class="propSection pos">
@@ -814,14 +898,7 @@
   </div>
 </div>
 
-<!-- ============================================================
-     HINT
-============================================================ -->
 <div id="hint"><span class="emoji"></span><span class="text"></span></div>
-
-<!-- ============================================================
-     TOOLTIP
-============================================================ -->
 <div class="tooltip" id="tooltip"></div>
 
 <!-- ============================================================
@@ -852,151 +929,89 @@
       </div>
 
       <div class="helpSection">
-        <h2>🛠️ As 5 ferramentas</h2>
-        <div class="helpCard">
-          <div class="bigEmoji">🖱️</div>
-          <div class="info">
-            <b>Selecionar</b>
-            <small>Clique num bloco pra escolher. Também pode arrastar direto pra mover ele!</small>
-          </div>
+        <h2>🟦 NOVO: Selecionar vários blocos</h2>
+        <p>Pra pegar <b>vários blocos de uma vez</b> e apagar, duplicar ou mover todos juntos:</p>
+        <div class="helpStep">
+          <div class="num">1</div>
+          <div class="txt">Clique no botão <b>🟦 Seleção</b> na barra de baixo (ele vai ficar azul brilhando)</div>
         </div>
-        <div class="helpCard">
-          <div class="bigEmoji">✥</div>
-          <div class="info">
-            <b>Mover</b>
-            <small>Clique no bloco e arraste pra onde quiser.</small>
-          </div>
+        <div class="helpStep">
+          <div class="num">2</div>
+          <div class="txt">Clique no chão e <b>arraste</b> — aparece um retângulo azul</div>
         </div>
-        <div class="helpCard">
-          <div class="bigEmoji">⟳</div>
-          <div class="info">
-            <b>Girar</b>
-            <small>Clique no bloco e arraste em círculo pra girar.</small>
-          </div>
+        <div class="helpStep">
+          <div class="num">3</div>
+          <div class="txt">Solte o mouse — tudo que tava dentro fica <b>selecionado</b></div>
         </div>
-        <div class="helpCard">
-          <div class="bigEmoji">⤢</div>
-          <div class="info">
-            <b>Tamanho</b>
-            <small>Arraste pra fora (aumenta) ou pra dentro (diminui).</small>
-          </div>
+        <div class="helpStep">
+          <div class="num">4</div>
+          <div class="txt">Agora clique em <b>Apagar</b>, <b>Duplicar</b>, <b>Copiar</b> ou <b>Mover</b> — a ação vale pra <b>todos</b>!</div>
         </div>
-        <div class="helpCard">
-          <div class="bigEmoji">🎨</div>
-          <div class="info">
-            <b>Pintar</b>
-            <small>Clique num bloco e escolha uma cor na paleta.</small>
-          </div>
+        <div class="helpStep">
+          <div class="num">5</div>
+          <div class="txt">Clique de novo em <b>🟦 Seleção</b> pra <b>desligar</b> o modo área</div>
+        </div>
+        <div class="helpTip">
+          <b>Dica:</b> dá pra fazer <b>tudo</b> com seleção múltipla! Você pode mover o grupo todo, mudar a cor de todos juntos, ou copiar e colar em outro lugar.
         </div>
       </div>
 
       <div class="helpSection">
-        <h2>⚡ Botões de ação</h2>
-        <div class="helpGrid2">
-          <div class="helpCard">
-            <div class="bigEmoji">↶</div>
-            <div class="info">
-              <b>Desfazer</b>
-              <small>Volta a última coisa que você fez</small>
-            </div>
-          </div>
-          <div class="helpCard">
-            <div class="bigEmoji">↷</div>
-            <div class="info">
-              <b>Refazer</b>
-              <small>Refaz o que você desfez</small>
-            </div>
-          </div>
-          <div class="helpCard">
-            <div class="bigEmoji">⧉</div>
-            <div class="info">
-              <b>Duplicar</b>
-              <small>Faz uma cópia do bloco selecionado</small>
-            </div>
-          </div>
-          <div class="helpCard">
-            <div class="bigEmoji">🗑️</div>
-            <div class="info">
-              <b>Apagar</b>
-              <small>Apaga o bloco selecionado</small>
-            </div>
-          </div>
+        <h2>🗑️ Apagar tudo</h2>
+        <p>O botão vermelho <b>🗑️ Apagar Tudo</b> no canto superior apaga o mapa inteiro. Ele sempre pede confirmação antes.</p>
+      </div>
+
+      <div class="helpSection">
+        <h2>🛠️ As 5 ferramentas</h2>
+        <div class="helpCard">
+          <div class="bigEmoji">🖱️</div>
+          <div class="info"><b>Selecionar</b><small>Clique num bloco pra escolher</small></div>
+        </div>
+        <div class="helpCard">
+          <div class="bigEmoji">✥</div>
+          <div class="info"><b>Mover</b><small>Arraste o bloco pra onde quiser</small></div>
+        </div>
+        <div class="helpCard">
+          <div class="bigEmoji">⟳</div>
+          <div class="info"><b>Girar</b><small>Arraste em círculo pra girar</small></div>
+        </div>
+        <div class="helpCard">
+          <div class="bigEmoji">⤢</div>
+          <div class="info"><b>Tamanho</b><small>Arraste pra fora (maior) ou dentro (menor)</small></div>
+        </div>
+        <div class="helpCard">
+          <div class="bigEmoji">🎨</div>
+          <div class="info"><b>Pintar</b><small>Clique num bloco e escolha uma cor</small></div>
         </div>
       </div>
 
       <div class="helpSection">
         <h2>📷 Como olhar em volta</h2>
-        <div class="helpCard">
-          <div class="bigEmoji">⌨️</div>
-          <div class="info">
-            <b>W A S D</b>
-            <small>Voar pra frente, trás, esquerda e direita</small>
+        <div class="helpGrid2">
+          <div class="helpCard">
+            <div class="bigEmoji">⌨️</div>
+            <div class="info"><b>W A S D</b><small>Voar pela cena</small></div>
           </div>
-        </div>
-        <div class="helpCard">
-          <div class="bigEmoji">Q / E</div>
-          <div class="info">
-            <b>Subir e descer</b>
-            <small>Voar pra cima ou pra baixo</small>
+          <div class="helpCard">
+            <div class="bigEmoji">Q / E</div>
+            <div class="info"><b>Subir e descer</b><small>Voar vertical</small></div>
           </div>
-        </div>
-        <div class="helpCard">
-          <div class="bigEmoji">🖱️➡️</div>
-          <div class="info">
-            <b>Botão direito do mouse</b>
-            <small>Segure e arraste pra girar a câmera</small>
+          <div class="helpCard">
+            <div class="bigEmoji">🖱️➡️</div>
+            <div class="info"><b>Botão direito</b><small>Segure e arraste pra girar</small></div>
           </div>
-        </div>
-        <div class="helpCard">
-          <div class="bigEmoji">🎡</div>
-          <div class="info">
-            <b>Roda do mouse</b>
-            <small>Zoom — aproxima e afasta</small>
+          <div class="helpCard">
+            <div class="bigEmoji">🎡</div>
+            <div class="info"><b>Roda do mouse</b><small>Zoom</small></div>
           </div>
         </div>
       </div>
 
       <div class="helpSection">
         <h2>💾 Salvar e mandar pra um amigo</h2>
-        <p>Clique no botão verde <b>💾 Salvar</b> lá em cima pra:</p>
-        <div class="helpCard">
-          <div class="bigEmoji">📤</div>
-          <div class="info">
-            <b>Salvar (exportar)</b>
-            <small>Gera um código que você copia e manda pra alguém. A pessoa cola no jogo dela e o mapa aparece igual!</small>
-          </div>
-        </div>
-        <div class="helpCard">
-          <div class="bigEmoji">📥</div>
-          <div class="info">
-            <b>Carregar (importar)</b>
-            <small>Cole um código que alguém te mandou e o mapa aparece.</small>
-          </div>
-        </div>
+        <p>Clique no botão verde <b>💾 Salvar</b> pra abrir a janela com <b>Salvar</b> e <b>Carregar</b>.</p>
         <div class="helpTip">
           <b>Dica:</b> guarda o código num bloco de notas. Outro dia você cola ele de volta e seu mapa volta!
-        </div>
-      </div>
-
-      <div class="helpSection">
-        <h2>🎨 Dicas pra ficar bonito</h2>
-        <div class="helpGrid2">
-          <div class="helpCard">
-            <div class="bigEmoji">🏗️</div>
-            <div class="info"><b>Comece pelo chão</b><small>Um cubo grande e achatado</small></div>
-          </div>
-          <div class="helpCard">
-            <div class="bigEmoji">🏠</div>
-            <div class="info"><b>Parede</b><small>Cubo com X = 0.3 e Z = 3</small></div>
-          </div>
-          <div class="helpCard">
-            <div class="bigEmoji">🌳</div>
-            <div class="info"><b>Árvore</b><small>Cilindro marrom + Bola verde</small></div>
-          </div>
-          <div class="helpCard">
-            <div class="bigEmoji">🚀</div>
-            <div class="info"><b>Foguete</b><small>Cilindro + Cone em cima</small></div>
-          </div>
         </div>
       </div>
 
@@ -1061,7 +1076,7 @@
 </div>
 
 <!-- ============================================================
-     MODAL CONFIRMAÇÃO LIMPAR
+     MODAL CONFIRMAÇÃO APAGAR TUDO
 ============================================================ -->
 <div id="confirmClearModal" class="modal">
   <div class="modalBox" style="max-width:460px; text-align:center; border:2px solid #a13a3a;">
@@ -1073,7 +1088,7 @@
       <div style="font-size:22px; font-weight:700; color:#fff; margin-bottom:12px;">Apagar tudo?</div>
       <div style="font-size:15px; color:#a8adb8; line-height:1.6; margin-bottom:24px;">
         Você vai apagar <b style="color:#ff8a8a;">todos os objetos</b> do mapa.<br>
-        Não tem como voltar depois!
+        Essa ação pode ser desfeita com <b>Ctrl+Z</b>... brincadeira, aperta <b>↶ Desfazer</b>!
       </div>
       <div style="display:inline-block; background: rgba(161,58,58,0.2); border: 1px solid #a13a3a; color: #ff8a8a; padding: 6px 16px; border-radius: 10px; font-weight: 700; font-size: 14px; margin-bottom: 28px;" id="clearCount">0 objetos</div>
       <div style="display:flex; gap:12px;">
@@ -1160,7 +1175,7 @@ grid.material.opacity = 0.6;
 scene.add(grid);
 
 /* ============================================================
-   CÂMERA (WASD + Q/E + mouse)
+   CÂMERA
 ============================================================ */
 const keys = {};
 addEventListener('keydown', e => { if (!isTyping()) keys[e.code] = true; });
@@ -1258,10 +1273,10 @@ function updateCount() {
 }
 
 /* ============================================================
-   SELEÇÃO
+   SELEÇÃO (agora suporta vários!)
 ============================================================ */
-let selected = null;
-let currentShape = 'box';
+let selectedObjects = [];  // array
+let primarySelected = null; // o último clicado (para painel de propriedades)
 
 function setOutline(mesh, on) {
   if (!mesh) return;
@@ -1274,27 +1289,49 @@ function setOutline(mesh, on) {
   }
 }
 
+// Caixa que envolve toda a seleção
 let selectionBox = null;
 function updateSelectionBox() {
-  if (selectionBox) { scene.remove(selectionBox); selectionBox.geometry.dispose(); selectionBox = null; }
-  if (!selected) return;
-  const box = new THREE.BoxHelper(selected, 0x5865f2);
-  box.material.linewidth = 3;
-  scene.add(box);
-  selectionBox = box;
+  if (selectionBox) {
+    scene.remove(selectionBox);
+    selectionBox.geometry.dispose();
+    selectionBox.material.dispose();
+    selectionBox = null;
+  }
+  if (selectedObjects.length === 0) return;
+
+  if (selectedObjects.length === 1) {
+    const box = new THREE.BoxHelper(selectedObjects[0], 0x5865f2);
+    box.material.linewidth = 3;
+    scene.add(box);
+    selectionBox = box;
+  } else {
+    // Envolve todos
+    const group = new THREE.Group();
+    const box = new THREE.Box3();
+    selectedObjects.forEach(o => box.expandByObject(o));
+    const helper = new THREE.Box3Helper(box, 0x00bcd4);
+    helper.material.linewidth = 3;
+    scene.add(helper);
+    selectionBox = helper;
+  }
+}
+
+function selectObjects(list) {
+  // Tira outline dos antigos
+  selectedObjects.forEach(o => setOutline(o, false));
+  selectedObjects = list.filter(Boolean);
+  // Coloca outline nos novos
+  selectedObjects.forEach(o => setOutline(o, true));
+
+  primarySelected = selectedObjects[selectedObjects.length - 1] || null;
+  updateSelectionBox();
+  refreshProps();
 }
 
 function selectObject(mesh) {
-  if (selected === mesh) return;
-  if (selected) setOutline(selected, false);
-  selected = mesh;
-  if (mesh) {
-    setOutline(mesh, true);
-    updateSelectionBox();
-  } else if (selectionBox) {
-    scene.remove(selectionBox); selectionBox.geometry.dispose(); selectionBox = null;
-  }
-  refreshProps();
+  if (!mesh) { selectObjects([]); return; }
+  selectObjects([mesh]);
 }
 
 /* ============================================================
@@ -1318,6 +1355,8 @@ function hideHint() {
    FERRAMENTAS
 ============================================================ */
 let currentTool = 'select';
+let areaMode = false; // modo seleção em área
+
 const toolInfo = {
   select: { emoji:'🖱️', name:'Selecionar' },
   move:   { emoji:'✥', name:'Mover' },
@@ -1331,7 +1370,7 @@ function setTool(t, silent=false) {
   document.querySelectorAll('.toolCard[data-tool]').forEach(b => {
     b.classList.toggle('active', b.dataset.tool === t);
   });
-  document.body.className = 'tool-' + t;
+  document.body.className = 'tool-' + t + (areaMode ? ' select-mode' : '');
   if (!silent) {
     const hints = {
       select:['🖱️', 'Clique num bloco. Arraste pra mover.'],
@@ -1349,7 +1388,68 @@ document.querySelectorAll('.toolCard[data-tool]').forEach(b => {
 });
 
 /* ============================================================
-   MANIPULAÇÃO DIRETA
+   MODO ÁREA (liga/desliga)
+============================================================ */
+const btnAreaMode = document.getElementById('btnAreaMode');
+const areaModeBanner = document.getElementById('areaModeBanner');
+
+function setAreaMode(on) {
+  areaMode = on;
+  btnAreaMode.classList.toggle('active', on);
+  if (on) {
+    document.body.classList.add('select-mode');
+    areaModeBanner.classList.add('show');
+    showHint('🟦', 'Modo área LIGADO — arraste pra selecionar!', 2500);
+  } else {
+    document.body.classList.remove('select-mode');
+    areaModeBanner.classList.remove('show');
+    clearAreaRect();
+    showHint('🖱️', 'Modo área desligado', 1500);
+  }
+}
+
+btnAreaMode.onclick = () => setAreaMode(!areaMode);
+
+/* ============================================================
+   RETÂNGULO VISUAL DE SELEÇÃO
+============================================================ */
+let areaRectEl = null;
+
+function ensureAreaRect() {
+  if (!areaRectEl) {
+    areaRectEl = document.createElement('div');
+    areaRectEl.style.position = 'fixed';
+    areaRectEl.style.border = '2px solid #00e5ff';
+    areaRectEl.style.background = 'rgba(0, 188, 212, 0.2)';
+    areaRectEl.style.boxShadow = '0 0 0 1px rgba(0,229,255,0.5), 0 0 20px rgba(0,188,212,0.5) inset';
+    areaRectEl.style.borderRadius = '4px';
+    areaRectEl.style.pointerEvents = 'none';
+    areaRectEl.style.zIndex = '60';
+    areaRectEl.style.display = 'none';
+    document.body.appendChild(areaRectEl);
+  }
+  return areaRectEl;
+}
+
+function updateAreaRect(x1, y1, x2, y2) {
+  const el = ensureAreaRect();
+  const left = Math.min(x1, x2);
+  const top = Math.min(y1, y2);
+  const w = Math.abs(x2 - x1);
+  const h = Math.abs(y2 - y1);
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+  el.style.width = w + 'px';
+  el.style.height = h + 'px';
+  el.style.display = 'block';
+}
+
+function clearAreaRect() {
+  if (areaRectEl) areaRectEl.style.display = 'none';
+}
+
+/* ============================================================
+   RAYCASTING
 ============================================================ */
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -1373,10 +1473,43 @@ function hitGround(e) {
   return hits[0] || null;
 }
 
+/* ============================================================
+   OBTÉM TODOS OS OBJETOS DENTRO DO RETÂNGULO (screen-space)
+============================================================ */
+function getObjectsInRect(x1, y1, x2, y2) {
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  const minY = Math.min(y1, y2);
+  const maxY = Math.max(y1, y2);
+
+  const result = [];
+  objectsGroup.children.forEach(obj => {
+    // Pega posição do mundo
+    const worldPos = new THREE.Vector3();
+    obj.getWorldPosition(worldPos);
+
+    // Projeta pra tela
+    const screen = worldPos.clone().project(camera);
+    const sx = (screen.x * 0.5 + 0.5) * innerWidth;
+    const sy = (-screen.y * 0.5 + 0.5) * innerHeight;
+
+    if (sx >= minX && sx <= maxX && sy >= minY && sy <= maxY) {
+      result.push(obj);
+    }
+  });
+  return result;
+}
+
+/* ============================================================
+   MANIPULAÇÃO DIRETA
+============================================================ */
 let op = null;
 let pointerIsDown = false;
 const movePlane = new THREE.Plane();
 const moveHitPoint = new THREE.Vector3();
+
+// dados pra mover múltiplos
+let multiMoveStart = null; // { objs: [{obj, startPos}], startHit: Vector3 }
 
 function forceRelease() {
   op = null;
@@ -1384,6 +1517,7 @@ function forceRelease() {
   isRotatingCam = false;
   document.body.classList.remove('dragging');
   hideHint();
+  clearAreaRect();
 }
 
 renderer.domElement.addEventListener('pointerdown', e => {
@@ -1395,6 +1529,21 @@ renderer.domElement.addEventListener('pointerdown', e => {
   if (pointerIsDown) forceRelease();
   pointerIsDown = true;
 
+  // ============================================================
+  // MODO ÁREA
+  // ============================================================
+  if (areaMode) {
+    op = {
+      type: 'area-select',
+      startX: e.clientX, startY: e.clientY,
+      moved: false,
+    };
+    return;
+  }
+
+  // ============================================================
+  // MODO NORMAL
+  // ============================================================
   const hit = hitAt(e);
 
   if (!hit) {
@@ -1407,13 +1556,22 @@ renderer.domElement.addEventListener('pointerdown', e => {
           point: g.point.clone(),
           moved: false,
         };
+      } else {
+        // Clique no vazio total - desseleciona
+        selectObjects([]);
       }
     }
     return;
   }
 
   const obj = hit.object;
-  selectObject(obj);
+
+  // Se clicou num objeto que JÁ está selecionado num grupo, mantém o grupo
+  if (selectedObjects.includes(obj) && selectedObjects.length > 1) {
+    // mantém seleção atual
+  } else {
+    selectObject(obj);
+  }
 
   if (currentTool === 'color') {
     openQuickColor(e.clientX, e.clientY, obj);
@@ -1430,12 +1588,15 @@ renderer.domElement.addEventListener('pointerdown', e => {
     obj.getWorldPosition(objPos);
     movePlane.setFromNormalAndCoplanarPoint(camDir.clone().negate(), objPos);
 
+    // Guarda posições iniciais de TODOS os selecionados
+    multiMoveStart = {
+      items: selectedObjects.map(o => ({ obj: o, startPos: o.position.clone() })),
+      startHit: hit.point.clone(),
+    };
+
     op = {
       type: 'move',
-      obj,
-      startPos: obj.position.clone(),
       startX: e.clientX, startY: e.clientY,
-      startHit: hit.point.clone(),
       moved: false,
     };
     document.body.classList.add('dragging');
@@ -1443,7 +1604,6 @@ renderer.domElement.addEventListener('pointerdown', e => {
   else if (tool === 'rotate') {
     op = {
       type: 'rotate',
-      obj,
       startRotX: obj.rotation.x,
       startRotY: obj.rotation.y,
       startX: e.clientX, startY: e.clientY,
@@ -1454,7 +1614,6 @@ renderer.domElement.addEventListener('pointerdown', e => {
   else if (tool === 'scale') {
     op = {
       type: 'scale',
-      obj,
       startScale: obj.scale.clone(),
       startX: e.clientX, startY: e.clientY,
       moved: false,
@@ -1477,29 +1636,67 @@ addEventListener('pointermove', e => {
   const dy = e.clientY - op.startY;
   if (Math.abs(dx) + Math.abs(dy) > 3) op.moved = true;
 
+  // ============================================================
+  // DESENHANDO RETÂNGULO
+  // ============================================================
+  if (op.type === 'area-select') {
+    if (op.moved) {
+      updateAreaRect(op.startX, op.startY, e.clientX, e.clientY);
+    }
+    return;
+  }
+
   if (op.type === 'maybe-create') return;
 
-  if (op.type === 'move') {
+  // ============================================================
+  // MOVER
+  // ============================================================
+  if (op.type === 'move' && multiMoveStart) {
     ndcFrom(e);
     raycaster.setFromCamera(ndc, camera);
     if (raycaster.ray.intersectPlane(movePlane, moveHitPoint)) {
-      const delta = moveHitPoint.clone().sub(op.startHit);
-      op.obj.position.copy(op.startPos.clone().add(delta));
+      const delta = moveHitPoint.clone().sub(multiMoveStart.startHit);
+      // Move TODOS os selecionados com o mesmo delta
+      multiMoveStart.items.forEach(it => {
+        it.obj.position.copy(it.startPos.clone().add(delta));
+      });
       updateSelectionBox();
       refreshProps();
     }
   }
-  else if (op.type === 'rotate') {
-    op.obj.rotation.y = op.startRotY + dx * 0.01;
-    op.obj.rotation.x = op.startRotX + dy * 0.01;
+  // ============================================================
+  // GIRAR
+  // ============================================================
+  else if (op.type === 'rotate' && primarySelected) {
+    primarySelected.rotation.y = (primarySelected.userData._sr_y || primarySelected.rotation.y) + 0;
+    // Aplica rotação a todos os selecionados (baseado no primary)
+    const rotY0 = primarySelected.userData._startRotY ?? primarySelected.rotation.y;
+    const rotX0 = primarySelected.userData._startRotX ?? primarySelected.rotation.x;
+    if (primarySelected.userData._startRotY === undefined) {
+      primarySelected.userData._startRotY = primarySelected.rotation.y;
+      primarySelected.userData._startRotX = primarySelected.rotation.x;
+    }
+    const newRY = primarySelected.userData._startRotY + dx * 0.01;
+    const newRX = primarySelected.userData._startRotX + dy * 0.01;
+    selectedObjects.forEach(o => {
+      o.rotation.y = newRY;
+      o.rotation.x = newRX;
+    });
     updateSelectionBox();
     refreshProps();
   }
-  else if (op.type === 'scale') {
+  // ============================================================
+  // ESCALAR
+  // ============================================================
+  else if (op.type === 'scale' && primarySelected) {
+    if (primarySelected.userData._startScale === undefined) {
+      primarySelected.userData._startScale = primarySelected.scale.clone();
+    }
     const dist = Math.hypot(dx, dy);
     const sign = (dx + dy) > 0 ? 1 : -1;
     const factor = 1 + (sign * dist * 0.005);
-    op.obj.scale.copy(op.startScale.clone().multiplyScalar(Math.max(0.1, factor)));
+    const newScale = primarySelected.userData._startScale.clone().multiplyScalar(Math.max(0.1, factor));
+    selectedObjects.forEach(o => o.scale.copy(newScale));
     updateSelectionBox();
     refreshProps();
   }
@@ -1514,20 +1711,48 @@ addEventListener('pointerup', e => {
 
   if (!op) return;
 
-  const wasMaybeCreate = op.type === 'maybe-create';
-  const moved = op.moved;
-  const point = op.point;
   const opType = op.type;
+  const wasMoved = op.moved;
 
-  op = null;
-
-  if (opType === 'move' || opType === 'rotate' || opType === 'scale') {
-    pushHistory();
+  // ============================================================
+  // FIM DA SELEÇÃO EM ÁREA
+  // ============================================================
+  if (opType === 'area-select') {
+    if (wasMoved) {
+      const found = getObjectsInRect(op.startX, op.startY, e.clientX, e.clientY);
+      selectObjects(found);
+      if (found.length > 0) {
+        showHint('🟦', `${found.length} bloco${found.length > 1 ? 's' : ''} selecionado${found.length > 1 ? 's' : ''}!`);
+      } else {
+        showHint('💭', 'Nenhum bloco nessa área', 1500);
+      }
+    }
+    clearAreaRect();
+    op = null;
     return;
   }
 
-  if (wasMaybeCreate && !moved && point) {
-    const pt = point.clone();
+  // ============================================================
+  // FIM DE MOVER/GIRAR/ESCALAR
+  // ============================================================
+  if (opType === 'move' || opType === 'rotate' || opType === 'scale') {
+    // Limpa flags temporárias
+    selectedObjects.forEach(o => {
+      delete o.userData._startRotY;
+      delete o.userData._startRotX;
+      delete o.userData._startScale;
+    });
+    multiMoveStart = null;
+    pushHistory();
+    op = null;
+    return;
+  }
+
+  // ============================================================
+  // CRIAR BLOCO
+  // ============================================================
+  if (opType === 'maybe-create' && !wasMoved && op.point) {
+    const pt = op.point.clone();
     pt.x = Math.round(pt.x * 2) / 2;
     pt.z = Math.round(pt.z * 2) / 2;
     pt.y = 0.5;
@@ -1536,6 +1761,8 @@ addEventListener('pointerup', e => {
     selectObject(obj);
     showHint('✨', 'Bloco criado!');
   }
+
+  op = null;
 });
 
 addEventListener('pointercancel', forceRelease);
@@ -1582,16 +1809,31 @@ function openQuickColor(x, y, obj) {
    PAINEL DE PROPRIEDADES
 ============================================================ */
 const propsEl = document.getElementById('props');
+const multiSection = document.getElementById('multiSection');
 
 function refreshProps() {
-  if (!selected) { propsEl.classList.add('hidden'); return; }
+  if (selectedObjects.length === 0) {
+    propsEl.classList.add('hidden');
+    return;
+  }
   propsEl.classList.remove('hidden');
-  document.getElementById('propName').textContent = '#' + selected.userData.id;
 
-  const p = selected.position;
-  const r = selected.rotation;
-  const s = selected.scale;
-  const c = '#' + selected.material.color.getHexString();
+  const isMulti = selectedObjects.length > 1;
+  multiSection.style.display = isMulti ? '' : 'none';
+
+  if (isMulti) {
+    document.getElementById('multiCount').textContent = selectedObjects.length;
+    document.getElementById('propName').textContent = selectedObjects.length + ' blocos';
+    document.getElementById('propName').classList.add('multi');
+  } else {
+    document.getElementById('propName').textContent = '#' + primarySelected.userData.id;
+    document.getElementById('propName').classList.remove('multi');
+  }
+
+  const p = primarySelected.position;
+  const r = primarySelected.rotation;
+  const s = primarySelected.scale;
+  const c = '#' + primarySelected.material.color.getHexString();
 
   setInput('px', p.x.toFixed(2));
   setInput('py', p.y.toFixed(2));
@@ -1623,7 +1865,7 @@ function setSlider(p, v) {
 
 propsEl.querySelectorAll('input[data-p]').forEach(inp => {
   inp.addEventListener('input', () => {
-    if (!selected) return;
+    if (selectedObjects.length === 0) return;
     const v = parseFloat(inp.value);
     if (isNaN(v)) return;
     applyProp(inp.dataset.p, v);
@@ -1634,7 +1876,7 @@ propsEl.querySelectorAll('input[data-p]').forEach(inp => {
 
 propsEl.querySelectorAll('input[data-s]').forEach(inp => {
   inp.addEventListener('input', () => {
-    if (!selected) return;
+    if (selectedObjects.length === 0) return;
     const v = parseFloat(inp.value);
     applyProp(inp.dataset.s, v);
     updateSelectionBox();
@@ -1644,7 +1886,7 @@ propsEl.querySelectorAll('input[data-s]').forEach(inp => {
 
 propsEl.querySelectorAll('.stepBtn').forEach(btn => {
   btn.onclick = () => {
-    if (!selected) return;
+    if (selectedObjects.length === 0) return;
     const prop = btn.dataset.step;
     const delta = parseFloat(btn.dataset.dir);
     const cur = getPropValue(prop);
@@ -1656,39 +1898,47 @@ propsEl.querySelectorAll('.stepBtn').forEach(btn => {
 });
 
 function getPropValue(prop) {
-  if (!selected) return 0;
+  if (!primarySelected) return 0;
   const r2d = 180/Math.PI;
-  if (prop === 'px') return selected.position.x;
-  if (prop === 'py') return selected.position.y;
-  if (prop === 'pz') return selected.position.z;
-  if (prop === 'rx') return selected.rotation.x * r2d;
-  if (prop === 'ry') return selected.rotation.y * r2d;
-  if (prop === 'rz') return selected.rotation.z * r2d;
-  if (prop === 'sx') return selected.scale.x;
-  if (prop === 'sy') return selected.scale.y;
-  if (prop === 'sz') return selected.scale.z;
+  if (prop === 'px') return primarySelected.position.x;
+  if (prop === 'py') return primarySelected.position.y;
+  if (prop === 'pz') return primarySelected.position.z;
+  if (prop === 'rx') return primarySelected.rotation.x * r2d;
+  if (prop === 'ry') return primarySelected.rotation.y * r2d;
+  if (prop === 'rz') return primarySelected.rotation.z * r2d;
+  if (prop === 'sx') return primarySelected.scale.x;
+  if (prop === 'sy') return primarySelected.scale.y;
+  if (prop === 'sz') return primarySelected.scale.z;
   return 0;
 }
 
 function applyProp(prop, v) {
-  if (!selected) return;
+  if (selectedObjects.length === 0) return;
   const d2r = Math.PI/180;
-  if (prop === 'px') selected.position.x = v;
-  if (prop === 'py') selected.position.y = v;
-  if (prop === 'pz') selected.position.z = v;
-  if (prop === 'rx') selected.rotation.x = v * d2r;
-  if (prop === 'ry') selected.rotation.y = v * d2r;
-  if (prop === 'rz') selected.rotation.z = v * d2r;
-  if (prop === 'sx') selected.scale.x = Math.max(0.01, v);
-  if (prop === 'sy') selected.scale.y = Math.max(0.01, v);
-  if (prop === 'sz') selected.scale.z = Math.max(0.01, v);
-  if (prop === 'color') selected.material.color.set(v);
+
+  if (prop === 'color') {
+    selectedObjects.forEach(o => o.material.color.set(v));
+    return;
+  }
+
+  // Pra valores numéricos, aplica em todos
+  selectedObjects.forEach(o => {
+    if (prop === 'px') o.position.x = v;
+    if (prop === 'py') o.position.y = v;
+    if (prop === 'pz') o.position.z = v;
+    if (prop === 'rx') o.rotation.x = v * d2r;
+    if (prop === 'ry') o.rotation.y = v * d2r;
+    if (prop === 'rz') o.rotation.z = v * d2r;
+    if (prop === 'sx') o.scale.x = Math.max(0.01, v);
+    if (prop === 'sy') o.scale.y = Math.max(0.01, v);
+    if (prop === 'sz') o.scale.z = Math.max(0.01, v);
+  });
 }
 
 propsEl.querySelectorAll('.swatch[data-color]').forEach(sw => {
   sw.onclick = () => {
-    if (!selected) return;
-    selected.material.color.set(sw.dataset.color);
+    if (selectedObjects.length === 0) return;
+    selectedObjects.forEach(o => o.material.color.set(sw.dataset.color));
     setInput('color', sw.dataset.color);
     pushHistory();
   };
@@ -1700,7 +1950,89 @@ propsEl.querySelectorAll('.swatch[data-color]').forEach(sw => {
 document.getElementById('btnUndo').onclick = () => undo();
 document.getElementById('btnRedo').onclick = () => redo();
 document.getElementById('btnDuplicate').onclick = () => duplicateSelected();
+document.getElementById('btnCopy').onclick = () => copySelected();
+document.getElementById('btnPaste').onclick = () => pasteClipboard();
 document.getElementById('btnDelete').onclick = () => deleteSelected();
+
+/* ============================================================
+   DUPLICAR / COPIAR / COLAR / APAGAR
+============================================================ */
+let clipboard = null; // { items: [...] }
+
+function duplicateSelected() {
+  if (selectedObjects.length === 0) {
+    showHint('💭', 'Selecione algum bloco primeiro', 1600);
+    return;
+  }
+  const clones = [];
+  selectedObjects.forEach(orig => {
+    const c = orig.clone();
+    c.material = orig.material.clone();
+    c.userData = { ...orig.userData, id: ++objId };
+    c.position.x += 1;
+    c.position.z += 1;
+    objectsGroup.add(c);
+    clones.push(c);
+  });
+  updateCount();
+  pushHistory();
+  selectObjects(clones);
+  showHint('⧉', `${clones.length} bloco${clones.length > 1 ? 's' : ''} duplicado${clones.length > 1 ? 's' : ''}!`);
+}
+
+function copySelected() {
+  if (selectedObjects.length === 0) {
+    showHint('💭', 'Selecione algum bloco primeiro', 1600);
+    return;
+  }
+  clipboard = {
+    items: selectedObjects.map(o => ({
+      shape: o.userData.shape,
+      position: o.position.clone(),
+      rotation: o.rotation.clone(),
+      scale: o.scale.clone(),
+      color: o.material.color.getHex()
+    }))
+  };
+  showHint('📋', `${clipboard.items.length} bloco${clipboard.items.length > 1 ? 's' : ''} copiado${clipboard.items.length > 1 ? 's' : ''}!`);
+}
+
+function pasteClipboard() {
+  if (!clipboard || clipboard.items.length === 0) {
+    showHint('💭', 'Nada copiado ainda', 1600);
+    return;
+  }
+  const created = [];
+  clipboard.items.forEach(item => {
+    const pos = item.position.clone();
+    pos.x += 2;
+    pos.z += 2;
+    const m = createObject(item.shape, pos, item.color);
+    m.rotation.copy(item.rotation);
+    m.scale.copy(item.scale);
+    created.push(m);
+  });
+  pushHistory();
+  selectObjects(created);
+  showHint('📥', `${created.length} bloco${created.length > 1 ? 's' : ''} colado${created.length > 1 ? 's' : ''}!`);
+}
+
+function deleteSelected() {
+  if (selectedObjects.length === 0) {
+    showHint('💭', 'Selecione algum bloco primeiro', 1600);
+    return;
+  }
+  const count = selectedObjects.length;
+  selectedObjects.forEach(o => {
+    objectsGroup.remove(o);
+    o.geometry?.dispose();
+    o.material?.dispose();
+  });
+  selectObjects([]);
+  updateCount();
+  pushHistory();
+  showHint('🗑️', `${count} bloco${count > 1 ? 's' : ''} apagado${count > 1 ? 's' : ''}!`);
+}
 
 /* ============================================================
    HISTÓRICO
@@ -1729,7 +2061,7 @@ function restore(str) {
     m.rotation.set(d.rotation[0], d.rotation[1], d.rotation[2]);
     m.scale.fromArray(d.scale);
   });
-  selectObject(null);
+  selectObjects([]);
 }
 
 function pushHistory() {
@@ -1762,31 +2094,6 @@ function redo() {
   restore(s);
   lastSnap = s;
   showHint('↷', 'Refeito');
-}
-
-/* ============================================================
-   DUPLICAR / APAGAR
-============================================================ */
-function duplicateSelected() {
-  if (!selected) { showHint('💭', 'Clique num bloco primeiro', 1600); return; }
-  const c = selected.clone();
-  c.material = selected.material.clone();
-  c.userData = { ...selected.userData, id: ++objId };
-  c.position.x += 1;
-  objectsGroup.add(c);
-  updateCount();
-  pushHistory();
-  selectObject(c);
-  showHint('⧉', 'Bloco duplicado!');
-}
-
-function deleteSelected() {
-  if (!selected) { showHint('💭', 'Clique num bloco primeiro', 1600); return; }
-  objectsGroup.remove(selected);
-  selectObject(null);
-  updateCount();
-  pushHistory();
-  showHint('🗑️', 'Bloco apagado');
 }
 
 /* ============================================================
@@ -1837,7 +2144,7 @@ function applyMapData(data) {
     const [shape, px,py,pz, rx,ry,rz, sx,sy,sz, color] = arr;
     createObject(shape, new THREE.Vector3(px,py,pz), color, [rx,ry,rz], [sx,sy,sz]);
   });
-  selectObject(null);
+  selectObjects([]);
   updateCount();
 }
 
@@ -1859,7 +2166,7 @@ function base64urlToBytes(str) {
 }
 
 /* ============================================================
-   MODAL SALVAR / CARREGAR
+   MODAIS
 ============================================================ */
 const saveModal = document.getElementById('saveModal');
 const helpModal = document.getElementById('helpModal');
@@ -1987,8 +2294,16 @@ document.getElementById('btnHelp').onclick = () => {
 };
 
 /* ============================================================
-   LIMPAR (via botão escondido — acessível pela ajuda ou algum menu futuro)
+   APAGAR TUDO (com confirmação)
 ============================================================ */
+document.getElementById('btnClearAll').onclick = () => {
+  const count = objectsGroup.children.length;
+  if (count === 0) { showHint('💭', 'O mapa já tá vazio!', 2000); return; }
+  document.getElementById('clearCount').textContent =
+    count === 1 ? '1 objeto no mapa' : `${count} objetos no mapa`;
+  confirmClearModal.classList.add('show');
+};
+
 document.getElementById('btnCancelClear').onclick = () => {
   confirmClearModal.classList.remove('show');
 };
@@ -2000,19 +2315,17 @@ document.getElementById('btnConfirmClear').onclick = () => {
     c.material?.dispose();
   }
   updateCount();
-  selectObject(null);
+  selectObjects([]);
   pushHistory();
   confirmClearModal.classList.remove('show');
   showHint('🧹', 'Tudo apagado!', 2500);
 };
 
-// Limpar pela tecla "shift+clique em apagar" - alternativa: clique longo
-// Aqui simplificamos: se clicar em Apagar sem nada selecionado, pergunta se quer limpar tudo
-// Mas mantemos o comportamento simples: só mostra hint
-
 /* ============================================================
    FORMAS
 ============================================================ */
+let currentShape = 'box';
+
 document.querySelectorAll('.shapeCard').forEach(b => {
   b.onclick = () => {
     document.querySelectorAll('.shapeCard').forEach(x => x.classList.remove('active'));
